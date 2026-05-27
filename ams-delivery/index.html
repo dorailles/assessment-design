@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AMS Delivery Settings — Prototype v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --font: 'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', Lato, -apple-system, BlinkMacSystemFont, sans-serif;
+  --text: #273540; --sub: #6B7C85; --link: #0770A3;
+  --bg: #F5F5F5; --white: #fff;
+  --nav: #394B58; --nav-txt: #BDC3C9;
+  --border: #C7CDD1; --border-in: #6A7883;
+  --sec-hdr: #DCE6ED; --on: #00AC18;
+  --btn: #1D354F; --r: 4px; --r-btn: 12px;
+  --focus: #2B7ABC;
+  --sh: 0 1px 3px rgba(0,0,0,.12); --sh2: 0 4px 20px rgba(0,0,0,.2);
+  --sh-knob: 0 1px 2px rgba(35,68,101,.15), 0 2px 4px 1px rgba(35,68,101,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--bg);line-height:1.5}
+
+/* Layout */
+.app{display:grid;grid-template-rows:48px 1fr;grid-template-columns:68px 230px 1fr;height:100vh;overflow:hidden}
+
+/* Course nav */
+.cnav{background:var(--white);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.cnav-hdr{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--sub);flex-shrink:0}
+.cnav-bread{font-size:13px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cnav-item{display:block;padding:9px 16px;font-size:14px;color:var(--link);text-decoration:none;cursor:pointer;border-left:3px solid transparent;background:none;border-right:none;border-top:none;border-bottom:none;width:100%;text-align:left;font-family:var(--font)}
+.cnav-item:hover{background:var(--bg)}
+.cnav-item.active{color:var(--text);font-weight:700;border-left-color:var(--text)}
+
+/* Topbar */
+.topbar{grid-column:1/-1;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:20px;z-index:20}
+.logo{display:flex;gap:3px}.logo-dot{width:7px;height:7px;border-radius:50%;background:var(--text)}
+.t-nav{display:flex;gap:20px}.t-nav a{color:var(--text);text-decoration:none}
+.t-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.diamond{width:15px;height:15px;border:1.5px solid var(--text);transform:rotate(45deg)}
+
+/* Sidenav */
+.sidenav{background:var(--nav);display:flex;flex-direction:column;align-items:center;padding:6px 0;overflow-y:auto}
+.ni{display:flex;flex-direction:column;align-items:center;padding:7px 0 5px;color:var(--nav-txt);text-decoration:none;font-size:10px;width:68px;border-left:3px solid transparent;gap:3px;cursor:pointer}
+.ni:hover{color:#fff;background:rgba(255,255,255,.08)}
+.ni.active{color:#fff;background:rgba(255,255,255,.1);border-left-color:#E66000}
+.av{width:30px;height:30px;border-radius:50%;background:#6B8FA3;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.ni-ico{width:22px;height:22px}
+.nd{width:36px;height:1px;background:rgba(255,255,255,.15);margin:4px 0}
+
+/* Main */
+.main{overflow-y:auto;background:var(--bg)}
+.screen{display:none}.screen.active{display:block}
+.page{max-width:860px;margin:0 auto;padding:24px 32px 48px}
+
+/* Quiz header */
+.q-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.q-title{font-size:24px;font-weight:700;display:flex;align-items:center;gap:8px}
+.btn-pub{background:var(--btn);color:#fff;border:none;border-radius:var(--r-btn);padding:0 18px;height:40px;font-size:16px;font-weight:500;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:8px}
+.q-meta{font-size:12px;color:var(--sub);margin-bottom:10px}
+.pills{display:flex;gap:8px;margin-bottom:16px}
+.pill{display:flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-size:12px;color:var(--sub)}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 16px;font-size:14px;color:var(--sub);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-1px;cursor:pointer;font-family:var(--font);background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--text);font-weight:700;border-bottom-color:var(--text)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* Cards + sections */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-bottom:16px;overflow:hidden}
+.card-tb{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 0}
+.card-t{font-size:18px;font-weight:700}
+.section{border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px}
+.sec-hdr{background:var(--sec-hdr);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.sec-hdr-t{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sec-body{padding:20px;background:var(--white)}
+
+/* Page-level tabs (settings page) */
+.pg-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:24px}
+.pg-tab{padding:10px 18px;font-size:14px;color:var(--sub);border-bottom:3px solid transparent;margin-bottom:-1px;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font)}
+.pg-tab.active{color:var(--text);font-weight:700;border-bottom-color:var(--text)}
+
+/* Form */
+.f-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.f-lbl{font-size:14px;font-weight:600;min-width:120px}
+.input{height:34px;border:1px solid var(--border-in);border-radius:var(--r);padding:0 10px;font-size:14px;font-family:var(--font);color:var(--text);background:var(--white);width:100%}
+.input:focus,.textarea:focus,.select:focus{outline:2px solid var(--focus);outline-offset:2px;border-color:var(--focus)}
+.select{height:34px;border:1px solid var(--border-in);border-radius:var(--r);padding:0 8px;font-size:14px;font-family:var(--font);color:var(--text);background:var(--white);cursor:pointer}
+.textarea{border:1px solid var(--border-in);border-radius:var(--r);padding:8px 10px;font-size:14px;width:100%;font-family:var(--font);color:var(--text);resize:vertical;min-height:80px}
+.f-hint{font-size:12px;color:var(--sub);margin-top:3px}
+
+/* Toggles — InstUI Switch */
+.tg-wrap{display:flex;align-items:center;gap:10px}
+.tg-track{width:40px;height:24px;background:var(--white);border:1px solid var(--border-in);border-radius:999px;cursor:pointer;display:flex;align-items:center;padding:2px;transition:background .15s,border-color .15s;flex-shrink:0}
+.tg-track.on{background:var(--on);border-color:var(--on);justify-content:flex-end}
+.tg-thumb{width:20px;height:20px;background:#fff;border-radius:50%;border:1px solid var(--border-in);box-shadow:var(--sh-knob);flex-shrink:0}
+.tg-track.on .tg-thumb{border-color:transparent}
+.tg-lbl{font-size:14px}
+
+/* Toggle indicator (preset page) — matches InstUI Switch */
+.ti{width:40px;height:24px;background:var(--white);border:1px solid var(--border-in);border-radius:999px;cursor:pointer;display:flex;align-items:center;padding:2px;transition:background .15s,border-color .15s;flex-shrink:0}
+.ti::after{content:'';display:block;width:20px;height:20px;background:#fff;border-radius:50%;border:1px solid var(--border-in);box-shadow:var(--sh-knob);flex-shrink:0;transition:border-color .15s}
+.ti.on{background:var(--on);border-color:var(--on);justify-content:flex-end}
+.ti.on::after{border-color:transparent}
+.ti::before{content:none}
+.ti.on::before{content:none}
+
+/* Check item */
+.ci{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:14px}
+.cc{width:20px;height:20px;border-radius:50%;background:var(--on);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* Buttons — InstUI */
+.btn{height:40px;border-radius:var(--r-btn);padding:0 16px;font-size:16px;font-weight:500;cursor:pointer;font-family:var(--font);border:1px solid;display:inline-flex;align-items:center;gap:8px}
+.btn-p{background:var(--btn);color:#fff;border-color:var(--btn)}
+.btn-p:hover{background:#162a40;border-color:#162a40}
+.btn-s{background:var(--white);color:var(--text);border-color:var(--border-in)}
+.btn-s:hover{background:var(--bg)}
+.btn-dis{background:var(--bg);color:var(--sub);border-color:var(--border);cursor:not-allowed;opacity:.7}
+.btn-ico{width:30px;height:30px;border:1px solid var(--border);border-radius:var(--r);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:12px}
+.btn-set{height:40px;border:1px solid var(--border-in);border-radius:var(--r-btn);padding:0 16px;background:var(--white);cursor:pointer;font-size:14px;font-weight:500;font-family:var(--font);display:flex;align-items:center;gap:8px;color:var(--text)}
+.btn-set:hover{background:var(--bg)}
+.ii{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border-in);cursor:pointer;color:var(--sub);font-size:11px;font-weight:700;flex-shrink:0}
+/* Global tooltip — positioned by JS */
+#g-tip{position:fixed;background:#2D3B45;color:#fff;border-radius:6px;padding:9px 13px;font-size:12px;line-height:1.5;white-space:normal;width:260px;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,.25);pointer-events:none;display:none}
+.link-s{color:var(--link);text-decoration:none;cursor:pointer;font-size:13px}
+.link-s:hover{text-decoration:underline}
+
+/* Info text */
+.info-txt{font-size:13px;color:var(--sub);margin-bottom:18px;line-height:1.6}
+.info-txt a,.info-txt .link-s{color:var(--link);text-decoration:none;cursor:pointer}
+.info-txt a:hover,.info-txt .link-s:hover{text-decoration:underline}
+
+/* Preset row */
+.preset-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;position:relative}
+.p-lbl{font-size:14px;font-weight:600}
+.p-sw{position:relative}
+.p-sel{height:34px;border:1px solid var(--border-in);border-radius:var(--r);padding:0 32px 0 10px;font-size:14px;font-family:var(--font);color:var(--sub);background:var(--white);cursor:pointer;min-width:180px;appearance:none}
+.p-sel.applied{color:var(--text);font-weight:600}
+.p-arr{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--sub)}
+
+/* Tooltip */
+.ttp{display:none;position:absolute;top:44px;left:186px;background:#2D3B45;color:#fff;border-radius:6px;padding:10px 14px;font-size:13px;line-height:1.5;max-width:280px;z-index:50;box-shadow:var(--sh2)}
+.ttp.open{display:block}
+.ttp::before{content:'';position:absolute;top:-6px;left:60px;border:6px solid transparent;border-bottom-color:#2D3B45;border-top:none}
+.ttp-x{position:absolute;top:8px;right:10px;background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:14px;line-height:1;padding:0}
+
+/* Preset applied banner */
+.p-banner{background:#EBF5EB;border:1px solid #A8D8A8;border-radius:var(--r);padding:10px 14px;font-size:13px;color:#2D6A2D;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* Date grid */
+.sh-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:10px}
+.sh-lbl{font-size:13px;font-weight:700;margin-bottom:2px}
+.sh-sub{font-size:12px;color:var(--sub);margin-bottom:8px}
+.sh-flds{display:flex;gap:8px;flex-wrap:wrap}
+.d-sublbl{font-size:12px;color:var(--sub);margin-bottom:4px}
+.d-btn{height:34px;border:1px solid var(--border-in);border-radius:var(--r);padding:0 10px;font-size:13px;font-family:var(--font);color:var(--sub);background:var(--white);cursor:pointer;display:flex;align-items:center;gap:6px;min-width:110px;white-space:nowrap}
+.d-btn.filled{color:var(--text)}
+.t-sel{height:34px;border:1px solid var(--border-in);border-radius:var(--r);padding:0 6px;font-size:13px;font-family:var(--font);color:var(--sub);background:var(--white);min-width:80px}
+.t-sel.filled{color:var(--text)}
+.clr-btn{background:none;border:none;color:var(--link);font-size:13px;cursor:pointer;font-family:var(--font);padding:0;margin-top:4px;display:block}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+
+/* Date group (assign to) */
+.dg{display:flex;gap:16px;flex-wrap:wrap}
+.dc{flex:1;min-width:140px}
+.dc-lbl{font-size:13px;font-weight:700;margin-bottom:6px}
+
+/* Assign pill */
+.a-pill{display:inline-flex;align-items:center;gap:6px;background:#EBF3F9;border:1px solid #A8C7DC;border-radius:20px;padding:3px 10px;font-size:13px}
+.a-x{background:none;border:none;cursor:pointer;color:var(--sub);font-size:14px;padding:0;line-height:1}
+
+/* Toggle row for preset page */
+.t-row{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px}
+
+/* Tray radio options */
+.tray-radios{display:flex;flex-direction:column;gap:5px;padding:6px 0 10px}
+.tray-radio{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;line-height:1.4}
+.tray-radio input[type=radio]{flex-shrink:0;accent-color:var(--link)}
+
+/* Multi-schedule rows */
+.multi-row{padding:14px 0;border-top:1px solid var(--border)}
+.multi-row:first-child{border-top:none;padding-top:0}
+.multi-lbl{font-size:13px;font-weight:700;color:var(--sub);margin-bottom:10px}
+
+/* Build content */
+.build-body{display:flex;padding:0 0 24px}
+.build-sb{width:44px;display:flex;flex-direction:column;align-items:center;padding-top:20px;gap:6px;color:var(--sub);font-size:11px;flex-shrink:0}
+.build-c{flex:1;padding:16px 20px 0 4px}
+.instr-box{border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.instr-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.add-btn{width:26px;height:26px;border-radius:50%;background:var(--btn);color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;margin:10px auto;line-height:1}
+.q-item{border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:4px}
+.q-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.q-num{background:var(--btn);color:#fff;border-radius:3px;width:19px;height:19px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.q-pts{font-size:12px;color:var(--sub)}
+.q-ctrls{margin-left:auto;display:flex;gap:4px}
+.q-body{display:flex;gap:10px;align-items:flex-start}
+.q-exp{width:22px;height:22px;border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--sub);cursor:pointer;flex-shrink:0}
+.q-inf{flex:1}
+.q-tit{font-size:14px;font-weight:600}
+.q-dsc{font-size:13px;color:var(--sub);margin-top:2px}
+.q-tc{font-size:11px;color:var(--sub);line-height:1.6;text-align:right;margin-left:auto;flex-shrink:0}
+.q-meta{font-size:11px;color:var(--sub);margin-top:3px}
+.exit-box{border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-top:10px}
+.badge-r{background:#E62429;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* Settings tray */
+.tray-ov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;display:none}
+.tray-ov.open{display:block}
+.tray{position:fixed;top:0;right:0;width:380px;height:100vh;background:var(--white);box-shadow:-4px 0 20px rgba(0,0,0,.2);z-index:101;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease}
+.tray.open{transform:translateX(0)}
+.tray-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.tray-t{font-size:16px;font-weight:700}
+.tray-x{background:none;border:none;cursor:pointer;color:var(--sub);padding:4px}
+.tray-bdy{overflow-y:auto;flex:1;padding:0 0 24px}
+.tray-sec{border-bottom:1px solid var(--border)}
+.tray-sh{background:var(--sec-hdr);padding:9px 20px;cursor:pointer}
+.tray-sh span{font-size:13px;font-weight:700}
+.tray-sb{padding:14px 20px}
+.tray-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:14px}
+.tray-ft{padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+
+/* Modal */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-ov.open{display:flex}
+.modal{background:var(--white);border-radius:var(--r-btn);width:480px;box-shadow:var(--sh2);position:relative;padding:28px 28px 24px}
+.modal-t{font-size:20px;font-weight:600;margin-bottom:16px}
+.modal-x{position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;color:var(--sub);padding:4px}
+.modal-body{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:18px}
+.f-field{margin-bottom:16px}
+.f-label{font-size:14px;font-weight:600;display:block;margin-bottom:6px}
+.req{color:#CF1F24}
+.modal-ft{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+
+/* Kebab */
+.keb{background:none;border:none;cursor:pointer;color:var(--sub);font-size:18px;padding:4px 8px;border-radius:var(--r)}
+
+/* Quiz list */
+.quiz-row{display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;cursor:pointer}
+.quiz-row:hover{background:var(--bg)}
+.quiz-icon{width:34px;height:34px;border-radius:var(--r);background:#0770A3;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.quiz-name{font-size:14px;font-weight:600;color:var(--link);margin-bottom:2px}
+.quiz-meta-row{font-size:12px;color:var(--sub)}
+.q-group-hdr{font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.04em;padding:14px 0 6px;border-bottom:1px solid var(--border);margin-bottom:10px}
+.pub-pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;border:1px solid;margin-left:auto;flex-shrink:0}
+.pub-pill.draft{color:var(--sub);border-color:var(--border)}
+.pub-pill.pub{color:#1B6B1B;border-color:#A8D8A8;background:#EBF5EB}
+
+/* Loading overlay */
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-ov{display:none;position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:400;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loading-ov.open{display:flex}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--link);border-radius:50%;animation:spin .75s linear infinite}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── TOPBAR ── -->
+<header class="topbar">
+  <div class="logo"><div class="logo-dot"></div><div class="logo-dot"></div><div class="logo-dot"></div><div class="logo-dot"></div></div>
+  <nav class="t-nav"><a href="#">Menu item</a><a href="#">Menu item</a><a href="#">Menu item</a></nav>
+  <div class="t-right"><div class="diamond"></div><div class="diamond"></div><span>Username</span></div>
+</header>
+
+<!-- ── SIDENAV ── -->
+<nav class="sidenav">
+  <div class="ni" style="padding-bottom:8px"><div class="av">JA</div></div>
+  <a class="ni" href="#">
+    <svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Account
+  </a>
+  <a class="ni" href="#">
+    <svg class="ni-ico" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Dashboard
+  </a>
+  <a class="ni active" href="#">
+    <svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Courses
+  </a>
+  <a class="ni" href="#">
+    <svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendar
+  </a>
+  <a class="ni" href="#">
+    <svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Inbox
+  </a>
+  <a class="ni" href="#">
+    <svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>History
+  </a>
+  <a class="ni" href="#">
+    <svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>Commons
+  </a>
+  <a class="ni" href="#">
+    <svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>Mastery
+  </a>
+  <div class="nd"></div>
+  <a class="ni" href="#" style="position:relative">
+    <svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span style="position:absolute;top:6px;right:8px;background:#E62429;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1">10</span>
+    Help
+  </a>
+</nav>
+
+<!-- ── COURSE NAV ── -->
+<nav class="cnav">
+  <div class="cnav-hdr">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <span class="cnav-bread" id="cnav-bread">BISC 101 › Quizzes</span>
+  </div>
+  <button class="cnav-item" href="#">Home</button>
+  <button class="cnav-item" href="#">IgniteAI Search</button>
+  <button class="cnav-item" href="#">Announcements</button>
+  <button class="cnav-item" href="#">Assignments</button>
+  <button class="cnav-item" href="#">Discussions</button>
+  <button class="cnav-item" href="#">Grades</button>
+  <button class="cnav-item" href="#">People</button>
+  <button class="cnav-item" href="#">Pages</button>
+  <button class="cnav-item" href="#">Files</button>
+  <button class="cnav-item" href="#">Syllabus</button>
+  <button class="cnav-item" href="#">Outcomes</button>
+  <button class="cnav-item" href="#">Rubrics</button>
+  <button class="cnav-item active" id="cnav-quizzes" onclick="go(0)">Quizzes</button>
+  <button class="cnav-item" href="#">Modules</button>
+  <button class="cnav-item" href="#">BigBlueButton</button>
+  <button class="cnav-item" href="#">Collaborations</button>
+  <button class="cnav-item" href="#">Lucid (Whiteboard)</button>
+  <button class="cnav-item" href="#">Item Banks</button>
+  <button class="cnav-item" href="#">Course Analytics</button>
+  <button class="cnav-item" href="#">Mastery Tracker</button>
+  <button class="cnav-item" id="cnav-settings" onclick="go(3)">Settings</button>
+</nav>
+
+<!-- ── MAIN ── -->
+<main class="main" id="main-scroll">
+
+<!-- ════════════════════════════════
+     SCREEN 0 — Quiz List (empty entry point)
+════════════════════════════════ -->
+<div id="s0" class="screen active">
+<div class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:16px">
+    <div style="position:relative;flex:1;max-width:340px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7C85" stroke-width="2" style="position:absolute;left:10px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search..." class="input" style="padding-left:32px;width:100%;border-color:var(--border);background:var(--white)"/>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-ico" style="height:38px;width:38px;border-radius:var(--r)" aria-label="More options"><svg width="3" height="14" viewBox="0 0 3 14" fill="currentColor"><circle cx="1.5" cy="1.5" r="1.5"/><circle cx="1.5" cy="7" r="1.5"/><circle cx="1.5" cy="12.5" r="1.5"/></svg></button>
+      <button class="btn btn-p"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Quiz</button>
+    </div>
+  </div>
+
+  <div style="border:1px solid var(--border);border-radius:var(--r);background:var(--white);overflow:hidden">
+    <div style="background:#F0F2F4;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      <span style="font-weight:700;font-size:14px">Course Quizzes</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-left:4px solid #00AC18;cursor:pointer" onclick="go(1)" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B7C85" stroke-width="1.5" style="flex-shrink:0"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:var(--text)">Bio 1 Organisms</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px">20 pts</div>
+      </div>
+      <div style="width:24px;height:24px;border-radius:50%;background:#00AC18;display:flex;align-items:center;justify-content:center;flex-shrink:0" aria-label="Published"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <button class="keb" onclick="event.stopPropagation()" aria-label="More options"><svg width="3" height="14" viewBox="0 0 3 14" fill="currentColor"><circle cx="1.5" cy="1.5" r="1.5"/><circle cx="1.5" cy="7" r="1.5"/><circle cx="1.5" cy="12.5" r="1.5"/></svg></button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 1 — Quiz Builder
+════════════════════════════════ -->
+<div id="s1" class="screen">
+<div class="page">
+  <div class="q-hdr">
+    <h1 class="q-title">Bio 1 Organisms <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7C85" stroke-width="2" style="cursor:pointer"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></h1>
+    <button class="btn-pub"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>Publish</button>
+  </div>
+  <p class="q-meta">Created by jon.advisor@instructure.com | Created 12/17/25 | Saved just now</p>
+  <div class="pills">
+    <span class="pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,12 12,22 2,12"/></svg> Label: Status</span>
+    <span class="pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,12 12,22 2,12"/></svg> Label: Status</span>
+    <span class="pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,12 12,22 2,12"/></svg> Label: Status</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active">Build</button>
+    <button class="tab" onclick="go(2)">Manage</button>
+    <button class="tab">Moderate</button>
+    <button class="tab">Reports</button>
+  </div>
+  <div class="card">
+    <div class="card-tb">
+      <h2 class="card-t">Build</h2>
+      <div style="display:flex;gap:6px">
+        <button class="btn-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        <button class="btn-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></button>
+        <button class="btn-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+        <button class="btn-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg></button>
+        <button class="btn-ico">•••</button>
+      </div>
+    </div>
+    <div class="build-body">
+      <div class="build-sb">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:4px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="badge-r">22</div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C7CDD1" stroke-width="1.5" style="margin-top:4px"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div style="margin-top:20px">1</div><div style="margin-top:56px">2</div><div style="margin-top:56px">3</div>
+      </div>
+      <div class="build-c">
+        <div class="instr-box">
+          <div class="instr-hdr"><span style="font-weight:600;font-size:14px">Instructions</span><button class="btn-ico" style="border:none;background:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>
+          <p style="font-size:13px;line-height:1.6">Welcome, Bio 1 Organisms! Today you will demonstrate your understanding of the fundamental building blocks of life. Remember to carefully read each question and consider all the amazing processes happening within every cell.</p>
+        </div>
+        <button class="add-btn">+</button>
+        <div class="q-item">
+          <div class="q-hd"><span class="q-num">1</span><span class="q-pts">3 points</span><div class="q-ctrls"><button class="btn-ico" style="width:26px;height:26px">⣿</button><button class="btn-ico" style="width:26px;height:26px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-ico" style="width:26px;height:26px">⧉</button><button class="btn-ico" style="width:26px;height:26px">✦</button><button class="btn-ico" style="width:26px;height:26px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></div></div>
+          <div class="q-body"><div class="q-exp">›</div><div class="q-inf"><div class="q-tit">Cell Differences and Similarities Item</div><div class="q-dsc">This video will explain the differences between prokary…</div><div class="q-meta">Passage</div></div><div class="q-tc"><div>🏷 10 Tags</div><div>Subject: High School Biology 1</div><div>Grade: 9, 10</div><div>Item bank: Panda District Bank</div></div></div>
+        </div>
+        <button class="add-btn">+</button>
+        <div class="q-item">
+          <div class="q-hd"><span class="q-num">2</span><span class="q-pts">3 points</span><div class="q-ctrls"><button class="btn-ico" style="width:26px;height:26px">⣿</button><button class="btn-ico" style="width:26px;height:26px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-ico" style="width:26px;height:26px">⧉</button><button class="btn-ico" style="width:26px;height:26px">✦</button><button class="btn-ico" style="width:26px;height:26px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></div></div>
+          <div class="q-body"><div class="q-exp">›</div><div class="q-inf"><div class="q-tit">The Nucleus</div><div class="q-dsc">Select the correct label for each part of the cell's nuc…</div><div class="q-meta">Passage</div></div><div class="q-tc"><div>🏷 10 Tags</div><div>Subject: High School Biology 1</div><div>Grade: 9, 10</div><div>Item bank: Panda District Bank</div></div></div>
+        </div>
+        <button class="add-btn">+</button>
+        <div class="q-item">
+          <div class="q-hd"><span class="q-num">3</span><span class="q-pts">3 points</span><div class="q-ctrls"><button class="btn-ico" style="width:26px;height:26px">⣿</button><button class="btn-ico" style="width:26px;height:26px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-ico" style="width:26px;height:26px">⧉</button><button class="btn-ico" style="width:26px;height:26px">✦</button><button class="btn-ico" style="width:26px;height:26px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></div></div>
+          <div class="q-body"><div class="q-exp" style="transform:rotate(90deg)">›</div><div class="q-inf"><div class="q-tit">Parts of an Animal Cell</div><div class="q-dsc">Place each of the provided labels into their correct pl…</div><div class="q-meta">Passage | Content</div></div><div class="q-tc"><div>🏷 10 Tags</div><div>Subject: High School Biology 1</div><div>Grade: 9, 10</div><div>Item bank: Panda District Bank</div></div></div>
+        </div>
+        <button class="add-btn">+</button>
+        <div class="exit-box"><div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;margin-bottom:6px"><span>Exit screen</span><button class="btn-ico" style="border:none;background:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div><p style="font-size:13px">Thank you for your submission.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 2 — Manage Tab (no preset)
+════════════════════════════════ -->
+<div id="s2" class="screen">
+<div class="page">
+  <div class="q-hdr">
+    <h1 class="q-title">Bio 1 Organisms <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7C85" stroke-width="2" style="cursor:pointer"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></h1>
+    <button class="btn-pub"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>Publish</button>
+  </div>
+  <p class="q-meta">Created by jon.adelson@instructure.com | Created 12/17/25 | Saved just now</p>
+  <div class="pills">
+    <span class="pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,12 12,22 2,12"/></svg> Label: Status</span>
+    <span class="pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,12 12,22 2,12"/></svg> Label: Status</span>
+    <span class="pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,12 12,22 2,12"/></svg> Label: Status</span>
+  </div>
+  <div class="tabs">
+    <button class="tab" onclick="go(1)">Build</button>
+    <button class="tab active">Manage</button>
+    <button class="tab">Moderate</button>
+    <button class="tab">Reports</button>
+  </div>
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px">Manage</h2>
+
+  <!-- Preset row -->
+  <div class="preset-row" id="s2-preset-row">
+    <span class="p-lbl">Presets</span>
+    <div class="p-sw">
+      <select class="p-sel" id="s2-preset-sel" onchange="if(this.value)go(5)"><option value="">Select preset</option></select>
+      <svg class="p-arr" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+    <button class="btn-set" onclick="openTray('empty')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings
+    </button>
+    <span class="ii" onclick="document.getElementById('s2-ttp').classList.toggle('open')">i</span>
+    <div class="ttp" id="s2-ttp">
+      <button class="ttp-x" onclick="document.getElementById('s2-ttp').classList.remove('open')">×</button>
+      Presets save time — bundle your quiz settings under a name once, then apply them to any quiz.
+    </div>
+  </div>
+  <p class="info-txt">Don't have presets yet? Create them in <span class="link-s" onclick="go(3)">Course Settings → Quiz Presets</span>. You can also configure settings individually below without using a preset.</p>
+
+  <!-- Assign to students -->
+  <div class="section">
+    <div class="sec-hdr" onclick="tog('s2-assign')">
+      <span class="sec-hdr-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="s2-assign-chev"><polyline points="18 15 12 9 6 15"/></svg>Assign to students</span>
+    </div>
+    <div class="sec-body" id="s2-assign">
+      <div class="f-row"><span class="f-lbl">Assessment type</span><select class="select" style="min-width:160px"><option>Graded</option></select></div>
+      <div class="f-row"><span class="f-lbl">Assignment group</span><select class="select" style="min-width:160px"><option>Assignment</option></select></div>
+      <div class="f-row"><span class="f-lbl">Points possible</span><input type="number" class="input" value="0" style="width:80px"/></div>
+      <div class="tg-wrap" style="margin-bottom:6px"><div class="tg-track" onclick="toggleSub(this)"><div class="tg-thumb"></div></div><span class="tg-lbl">Time limit</span></div>
+      <div class="tg-sub" style="display:none;padding-left:50px;margin-bottom:16px"><div style="display:flex;gap:20px"><div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Hours</div><input type="number" class="input" value="1" style="width:70px"/></div><div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Minutes</div><input type="number" class="input" value="0" style="width:70px"/></div></div></div>
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Assign to</h3>
+      <p style="font-size:13px;color:var(--sub);margin-bottom:10px">Everyone, specific students, or groups</p>
+      <div style="border:1px solid var(--border-in);border-radius:var(--r);padding:6px 10px;display:flex;align-items:center;gap:8px;margin-bottom:14px"><span class="a-pill">Everyone <button class="a-x">×</button></span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" style="margin-left:auto"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="dg" style="margin-bottom:10px">
+        <div class="dc"><div class="dc-lbl">Available from</div><div style="font-size:11px;color:var(--sub);margin-bottom:6px;line-height:1.4;min-height:32px">When the quiz becomes open for submissions</div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div><button class="clr-btn">Clear</button></div>
+        <div class="dc"><div class="dc-lbl" style="color:transparent">.</div><div style="margin-bottom:6px;min-height:32px" aria-hidden="true"></div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Time</div><select class="t-sel"><option>Select</option></select></div>
+        <div class="dc"><div class="dc-lbl">Due on</div><div style="font-size:11px;color:var(--sub);margin-bottom:6px;line-height:1.4;min-height:32px">Last time quiz can be submitted for full credit</div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div><button class="clr-btn">Clear</button></div>
+        <div class="dc"><div class="dc-lbl" style="color:transparent">.</div><div style="margin-bottom:6px;min-height:32px" aria-hidden="true"></div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Time</div><select class="t-sel"><option>Select</option></select></div>
+        <div class="dc"><div class="dc-lbl">Until</div><div style="font-size:11px;color:var(--sub);margin-bottom:6px;line-height:1.4;min-height:32px">When submissions are no longer accepted</div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div><button class="clr-btn">Clear</button></div>
+        <div class="dc"><div class="dc-lbl" style="color:transparent">.</div><div style="margin-bottom:6px;min-height:32px" aria-hidden="true"></div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Time</div><select class="t-sel"><option>Select</option></select></div>
+      </div>
+      <button class="btn btn-s"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Create group</button>
+    </div>
+  </div>
+
+  <!-- Release results -->
+  <div class="section">
+    <div class="sec-hdr" onclick="tog('s2-release')">
+      <span class="sec-hdr-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="s2-release-chev"><polyline points="18 15 12 9 6 15"/></svg>Release results</span>
+    </div>
+    <div class="sec-body" id="s2-release">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Release results to students</h3>
+      <div style="display:flex;align-items:flex-start;gap:10px;background:#EBF3F9;border-left:4px solid #0770A3;border-radius:var(--r);padding:12px 14px;margin-bottom:14px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10" fill="#0770A3"/><path d="M12 16v-4M12 8h.01" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p style="font-size:14px">This quiz uses a template that doesn't include a scheduled time window.</p>
+      </div>
+      <p style="font-size:13px;color:var(--sub)">To change which result views are included <span class="link-s" onclick="openTray('empty')">Customize student view</span>.</p>
+    </div>
+  </div>
+
+  <!-- Restrict access -->
+  <div class="section">
+    <div class="sec-hdr" onclick="tog('s2-restrict')">
+      <span class="sec-hdr-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="s2-restrict-chev"><polyline points="18 15 12 9 6 15"/></svg>Restrict access</span>
+    </div>
+    <div class="sec-body" id="s2-restrict">
+      <div style="margin-bottom:14px">
+        <div class="tg-wrap" style="margin-bottom:6px"><div class="tg-track" onclick="toggleSub(this)"><div class="tg-thumb"></div></div><span class="tg-lbl">Require student access code</span><span class="ii" style="margin-left:4px">i</span></div>
+        <div class="tg-sub" style="display:none;padding-left:48px"><label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">Access code<span class="req">*</span></label><input type="text" class="input" placeholder="Enter access code" style="max-width:280px"/></div>
+      </div>
+      <div>
+        <div class="tg-wrap" style="margin-bottom:6px"><div class="tg-track" onclick="toggleSub(this)"><div class="tg-thumb"></div></div><span class="tg-lbl">Filter IP addresses</span><span class="ii" style="margin-left:4px">i</span></div>
+        <div class="tg-sub" style="display:none;padding-left:48px">
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">Input custom range<span class="req">*</span></label>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><input type="text" class="input" placeholder="Start IP address" style="max-width:180px"/><span style="font-size:13px;color:var(--sub)">to</span><input type="text" class="input" placeholder="End IP address" style="max-width:180px"/></div>
+          <button class="btn btn-s" style="font-size:13px;height:30px;margin-bottom:12px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add allowed range</button>
+          <div><label style="font-size:13px;color:var(--sub);display:block;margin-bottom:4px">Select from existing group ranges</label><select class="select" style="min-width:180px"><option>Select</option></select></div>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;margin-top:14px"><input type="checkbox" style="width:16px;height:16px"/> Notify users content has changed</label>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 3 — Course Settings (empty)
+════════════════════════════════ -->
+<div id="s3" class="screen">
+<div class="page">
+  <h1 style="font-size:26px;font-weight:700;margin-bottom:16px">Settings</h1>
+  <div class="pg-tabs">
+    <button class="pg-tab">Sections</button><button class="pg-tab">Navigation</button><button class="pg-tab">Apps</button><button class="pg-tab">Feature options</button><button class="pg-tab">Integrations</button><button class="pg-tab active">Quiz presets</button>
+  </div>
+  <div class="card">
+    <div class="card-tb" style="margin-bottom:16px"><h2 class="card-t">Quiz presets</h2><button class="keb">•••</button></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:0 20px 16px">
+      <span style="font-size:14px;font-weight:600">Preset</span>
+      <div class="p-sw"><select class="p-sel"><option value="">Select preset</option></select><svg class="p-arr" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <button class="btn btn-s">Reset</button>
+    </div>
+
+    <!-- Display -->
+    <div style="border-top:1px solid var(--border)"><div style="background:var(--sec-hdr);padding:9px 20px"><span style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Display</span></div>
+    <div style="padding:14px 20px 16px">
+      <div class="t-row"><div class="ti"></div> Shuffle questions</div>
+      <div class="t-row"><div class="ti"></div> Shuffle answers</div>
+      <div class="t-row"><div class="ti" data-controls="s3-backtrack"></div> One question at a time <span class="ii" style="margin-left:6px">i</span></div>
+      <div id="s3-backtrack" style="display:none;padding-left:54px;margin-top:4px;margin-bottom:4px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" style="width:16px;height:16px"/> Allow backtracking <span class="ii" style="margin-left:4px">i</span></label>
+      </div>
+    </div></div>
+
+    <!-- Scoring -->
+    <div style="border-top:1px solid var(--border)"><div style="background:var(--sec-hdr);padding:9px 20px"><span style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Scoring</span></div>
+    <div style="padding:14px 20px 16px">
+      <div style="margin-bottom:4px"><div style="font-size:13px;font-weight:600;margin-bottom:6px">Type</div><select class="select" style="min-width:180px"><option>Points</option><option>Percentage</option><option>Pass/Fail</option></select></div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:14px">Choose how scores appear in the gradebook</div>
+      <div class="t-row"><div class="ti" data-controls="s3-attempts"></div> Allow multiple attempts <span class="ii" style="margin-left:6px">i</span></div>
+      <div id="s3-attempts" style="display:none;padding-left:54px;margin:8px 0 14px">
+        <div style="margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:5px">Attempts allowed</div><select class="select" style="min-width:160px"><option>Limited</option><option>Unlimited</option></select></div>
+        <div style="margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:5px">Number of attempts</div><input type="number" class="input" value="1" style="width:80px"/></div>
+        <div style="margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:5px">Required time in between</div><div style="display:flex;gap:14px;flex-wrap:wrap"><div><div style="font-size:12px;color:var(--sub);margin-bottom:3px">Days</div><input type="number" class="input" value="0" style="width:65px"/></div><div><div style="font-size:12px;color:var(--sub);margin-bottom:3px">Hours</div><input type="number" class="input" value="0" style="width:65px"/></div><div><div style="font-size:12px;color:var(--sub);margin-bottom:3px">Minutes</div><input type="number" class="input" value="0" style="width:65px"/></div></div></div>
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:5px">Score to keep</div><select class="select" style="min-width:160px"><option>Highest</option><option>Latest</option><option>Average</option><option>First</option></select></div>
+      </div>
+      <div class="t-row"><div class="ti"></div> Don't count towards final grade</div>
+      <div class="t-row"><div class="ti"></div> Don't display in gradebook</div>
+      <div class="t-row"><div class="ti"></div> Sync to SIS <span class="ii" style="margin-left:6px">i</span></div>
+      <div class="t-row"><div class="ti"></div> Hide names while grading <span class="ii" style="margin-left:6px">i</span></div>
+    </div></div>
+
+    <!-- Release Results -->
+    <div style="border-top:1px solid var(--border)"><div style="background:var(--sec-hdr);padding:9px 20px"><span style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Release Results</span></div>
+    <div style="padding:14px 20px 16px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px">Final scores <span class="ii">i</span></div>
+      <div class="t-row"><div class="ti"></div> Show points awarded <span class="ii" style="margin-left:6px">i</span></div>
+      <div class="t-row"><div class="ti"></div> Show points possible <span class="ii" style="margin-left:6px">i</span></div>
+      <div style="margin-top:14px;font-size:14px;font-weight:700;margin-bottom:8px">Results</div>
+
+      <!-- Show questions — always visible, top-level -->
+      <div class="t-row"><div class="ti" data-controls="s3-q-sub"></div> Show questions <span class="ii" style="margin-left:6px">i</span></div>
+      <div id="s3-q-sub" style="display:none;padding-left:50px;margin:4px 0 8px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-q" checked style="accent-color:var(--link)"/> Always — for all attempts</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-q" style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-q" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-q" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-q" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+        <!-- Show responses — nested under Show questions -->
+        <div style="margin-top:6px">
+          <div class="t-row"><div class="ti" data-controls="s3-sr-sub"></div> Show responses</div>
+          <div id="s3-sr-sub" style="display:none;padding-left:50px;margin:4px 0 8px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-sr" checked style="accent-color:var(--link)"/> Always — for all attempts</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-sr" style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-sr" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-sr" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-sr" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+            <!-- Correct/incorrect, Correct answer, Answer feedback — nested under Show responses -->
+            <div style="margin-top:6px">
+              <div class="t-row"><div class="ti" data-controls="s3-ci-sub"></div> Correct/incorrect <span class="ii" style="margin-left:6px">i</span></div>
+              <div id="s3-ci-sub" style="display:none;padding-left:50px;margin:4px 0 8px">
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ci" checked style="accent-color:var(--link)"/> Always — for all attempts</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ci" style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ci" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ci" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ci" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+              </div>
+              <div class="t-row"><div class="ti" data-controls="s3-ca-sub"></div> Correct answer <span class="ii" style="margin-left:6px">i</span></div>
+              <div id="s3-ca-sub" style="display:none;padding-left:50px;margin:4px 0 8px">
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ca" checked style="accent-color:var(--link)"/> Always available — for all attempts</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ca" style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ca" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ca" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-ca" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+              </div>
+              <div class="t-row"><div class="ti" data-controls="s3-af-sub"></div> Answer feedback <span class="ii" style="margin-left:6px">i</span></div>
+              <div id="s3-af-sub" style="display:none;padding-left:50px;margin:4px 0 8px">
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-af" checked style="accent-color:var(--link)"/> Always available — for all attempts</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-af" style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-af" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-af" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s3-af" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;font-size:14px;font-weight:700;margin-bottom:8px">Feedback</div>
+      <div class="t-row"><div class="ti" data-controls="s3-gf"></div> Show general feedback <span class="ii" style="margin-left:6px">i</span></div>
+      <div id="s3-gf" style="display:none;padding-left:54px;margin-top:8px">
+        <div style="border:1px solid var(--border-in);border-radius:var(--r);background:var(--bg);padding:8px 10px;min-height:80px;font-size:13px;color:var(--sub)">Field text</div>
+        <button class="btn btn-s" style="margin-top:8px;font-size:13px;height:34px">Preview feedback</button>
+      </div>
+    </div></div>
+
+    <!-- Add restrictions -->
+    <div style="border-top:1px solid var(--border)"><div style="background:var(--sec-hdr);padding:9px 20px"><span style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Add restrictions</span></div>
+    <div style="padding:14px 20px 16px">
+      <div class="t-row"><div class="ti"></div> Block document uploads <span class="ii" style="margin-left:6px">i</span></div>
+      <div class="t-row"><div class="ti"></div> Detect multiple sessions <span class="ii" style="margin-left:6px">i</span></div>
+    </div></div>
+
+    <div style="padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:10px">
+      <button class="btn btn-dis" disabled>Update preset</button>
+      <button class="btn btn-p" onclick="openModal('create')">Create new preset</button>
+    </div>
+  </div>
+  <p style="margin-top:16px;font-size:13px"><span class="link-s" onclick="go(2)">← Back to quiz</span></p>
+</div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 4 — Course Settings (Midterm)
+════════════════════════════════ -->
+<div id="s4" class="screen">
+<div class="page">
+  <h1 style="font-size:26px;font-weight:700;margin-bottom:16px">Settings</h1>
+  <div class="pg-tabs">
+    <button class="pg-tab">Sections</button><button class="pg-tab">Navigation</button><button class="pg-tab">Apps</button><button class="pg-tab">Feature options</button><button class="pg-tab">Integrations</button><button class="pg-tab active">Quiz presets</button>
+  </div>
+  <div class="card">
+    <div class="card-tb" style="margin-bottom:16px"><h2 class="card-t">Quiz presets</h2><button class="keb">•••</button></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:0 20px 16px">
+      <span style="font-size:14px;font-weight:600">Preset</span>
+      <div class="p-sw"><select class="p-sel applied"><option value="midterm" selected>Midterm</option></select><svg class="p-arr" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <button class="btn btn-s">Reset</button>
+    </div>
+
+    <!-- Display -->
+    <div style="border-top:1px solid var(--border)"><div style="background:var(--sec-hdr);padding:9px 20px"><span style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Display</span></div>
+    <div style="padding:14px 20px 16px">
+      <div class="t-row"><div class="ti on"></div> Shuffle questions</div>
+      <div class="t-row"><div class="ti on"></div> Shuffle answers</div>
+      <div class="t-row"><div class="ti on" data-controls="s4-backtrack"></div> One question at a time <span class="ii" style="margin-left:6px">i</span></div>
+      <div id="s4-backtrack" style="padding-left:54px;margin-top:4px;margin-bottom:4px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" style="width:16px;height:16px"/> Allow backtracking <span class="ii" style="margin-left:4px">i</span></label>
+      </div>
+    </div></div>
+
+    <!-- Scoring -->
+    <div style="border-top:1px solid var(--border)"><div style="background:var(--sec-hdr);padding:9px 20px"><span style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Scoring</span></div>
+    <div style="padding:14px 20px 16px">
+      <div style="margin-bottom:4px"><div style="font-size:13px;font-weight:600;margin-bottom:6px">Type</div><select class="select" style="min-width:180px"><option>Points</option><option>Percentage</option><option>Pass/Fail</option></select></div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:14px">Choose how scores appear in the gradebook</div>
+      <div class="t-row"><div class="ti on" data-controls="s4-attempts"></div> Allow multiple attempts <span class="ii" style="margin-left:6px">i</span></div>
+      <div id="s4-attempts" style="padding-left:54px;margin:8px 0 14px">
+        <div style="margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:5px">Attempts allowed</div><select class="select" style="min-width:160px"><option>Limited</option><option>Unlimited</option></select></div>
+        <div style="margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:5px">Number of attempts</div><input type="number" class="input" value="1" style="width:80px"/></div>
+        <div style="margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:5px">Required time in between</div><div style="display:flex;gap:14px;flex-wrap:wrap"><div><div style="font-size:12px;color:var(--sub);margin-bottom:3px">Days</div><input type="number" class="input" value="0" style="width:65px"/></div><div><div style="font-size:12px;color:var(--sub);margin-bottom:3px">Hours</div><input type="number" class="input" value="0" style="width:65px"/></div><div><div style="font-size:12px;color:var(--sub);margin-bottom:3px">Minutes</div><input type="number" class="input" value="0" style="width:65px"/></div></div></div>
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:5px">Score to keep</div><select class="select" style="min-width:160px"><option>Highest</option><option>Latest</option><option>Average</option><option>First</option></select></div>
+      </div>
+      <div class="t-row"><div class="ti on"></div> Don't count towards final grade</div>
+      <div class="t-row"><div class="ti on"></div> Don't display in gradebook</div>
+      <div class="t-row"><div class="ti on"></div> Sync to SIS <span class="ii" style="margin-left:6px">i</span></div>
+      <div class="t-row"><div class="ti on"></div> Hide names while grading <span class="ii" style="margin-left:6px">i</span></div>
+    </div></div>
+
+    <!-- Release Results -->
+    <div style="border-top:1px solid var(--border)"><div style="background:var(--sec-hdr);padding:9px 20px"><span style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Release Results</span></div>
+    <div style="padding:14px 20px 16px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px">Final scores <span class="ii">i</span></div>
+      <div class="t-row"><div class="ti on"></div> Show points awarded <span class="ii" style="margin-left:6px">i</span></div>
+      <div class="t-row"><div class="ti on"></div> Show points possible <span class="ii" style="margin-left:6px">i</span></div>
+      <div style="margin-top:14px;font-size:14px;font-weight:700;margin-bottom:8px">Results</div>
+
+      <!-- Show questions — always visible, top-level -->
+      <div class="t-row"><div class="ti on" data-controls="s4-q-sub"></div> Show questions <span class="ii" style="margin-left:6px">i</span></div>
+      <div id="s4-q-sub" style="padding-left:50px;margin:4px 0 8px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-q" style="accent-color:var(--link)"/> Always — for all attempts</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-q" checked style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-q" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-q" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-q" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+        <!-- Show responses — nested under Show questions -->
+        <div style="margin-top:6px">
+          <div class="t-row"><div class="ti on" data-controls="s4-sr-sub"></div> Show responses</div>
+          <div id="s4-sr-sub" style="padding-left:50px;margin:4px 0 8px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-sr" style="accent-color:var(--link)"/> Always — for all attempts</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-sr" checked style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-sr" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-sr" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-sr" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+            <!-- Correct/incorrect, Correct answer, Answer feedback — nested under Show responses -->
+            <div style="margin-top:6px">
+              <div class="t-row"><div class="ti on" data-controls="s4-ci-sub"></div> Correct/incorrect <span class="ii" style="margin-left:6px">i</span></div>
+              <div id="s4-ci-sub" style="padding-left:50px;margin:4px 0 8px">
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ci" checked style="accent-color:var(--link)"/> Always — for all attempts</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ci" style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ci" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ci" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ci" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+              </div>
+              <div class="t-row"><div class="ti on" data-controls="s4-ca-sub"></div> Correct answer <span class="ii" style="margin-left:6px">i</span></div>
+              <div id="s4-ca-sub" style="padding-left:50px;margin:4px 0 8px">
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ca" checked style="accent-color:var(--link)"/> Always available — for all attempts</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ca" style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ca" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ca" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-ca" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+              </div>
+              <div class="t-row"><div class="ti on" data-controls="s4-af-sub"></div> Answer feedback <span class="ii" style="margin-left:6px">i</span></div>
+              <div id="s4-af-sub" style="padding-left:50px;margin:4px 0 8px">
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-af" checked style="accent-color:var(--link)"/> Always available — for all attempts</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-af" style="accent-color:var(--link)"/> At a scheduled time — for all attempts <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-af" style="accent-color:var(--link)"/> Once after each attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-af" style="accent-color:var(--link)"/> Only after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer"><input type="radio" name="s4-af" style="accent-color:var(--link)"/> Only once after final attempt <span class="ii" style="margin-left:4px">i</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;font-size:14px;font-weight:700;margin-bottom:8px">Feedback</div>
+      <div class="t-row"><div class="ti on" data-controls="s4-gf"></div> Show general feedback <span class="ii" style="margin-left:6px">i</span></div>
+      <div id="s4-gf" style="padding-left:54px;margin-top:8px">
+        <div style="border:1px solid var(--border-in);border-radius:var(--r);background:var(--bg);padding:8px 10px;min-height:80px;font-size:13px;color:var(--sub)">Field text</div>
+        <button class="btn btn-s" style="margin-top:8px;font-size:13px;height:34px">Preview feedback</button>
+      </div>
+    </div></div>
+
+    <!-- Add restrictions -->
+    <div style="border-top:1px solid var(--border)"><div style="background:var(--sec-hdr);padding:9px 20px"><span style="font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Add restrictions</span></div>
+    <div style="padding:14px 20px 16px">
+      <div class="t-row"><div class="ti on"></div> Block document uploads <span class="ii" style="margin-left:6px">i</span></div>
+      <div class="t-row"><div class="ti on"></div> Detect multiple sessions <span class="ii" style="margin-left:6px">i</span></div>
+    </div></div>
+
+    <div style="padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:10px">
+      <button class="btn btn-p" onclick="openModal('update')">Update preset</button>
+      <button class="btn btn-p" onclick="openModal('create2')">Create new preset</button>
+    </div>
+  </div>
+  <p style="margin-top:16px;font-size:13px"><span class="link-s" onclick="goBackFromPreset()">← Back to quiz (Manage tab)</span></p>
+</div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN 5 — Manage Tab (Midterm applied)
+════════════════════════════════ -->
+<div id="s5" class="screen">
+<div class="page">
+  <div class="q-hdr">
+    <h1 class="q-title">Bio 1 Organisms <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7C85" stroke-width="2" style="cursor:pointer"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></h1>
+    <button class="btn-pub"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>Publish</button>
+  </div>
+  <p class="q-meta">Created by jon.adelson@instructure.com | Created 01/13/26 | Saved just now</p>
+  <div class="pills">
+    <span class="pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,12 12,22 2,12"/></svg> Label: Status</span>
+    <span class="pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,12 12,22 2,12"/></svg> Label: Status</span>
+    <span class="pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,12 12,22 2,12"/></svg> Label: Status</span>
+  </div>
+  <div class="tabs">
+    <button class="tab" onclick="go(1)">Build</button>
+    <button class="tab active">Manage</button>
+    <button class="tab">Moderate</button>
+    <button class="tab">Reports</button>
+  </div>
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px">Manage</h2>
+
+  <div class="preset-row">
+    <span class="p-lbl">Presets</span>
+    <div class="p-sw"><select class="p-sel applied"><option value="midterm" selected>Midterm</option></select><svg class="p-arr" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+    <button class="btn-set" onclick="openTray('midterm')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings
+    </button>
+    <span class="ii">i</span>
+  </div>
+  <div class="p-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Preset <strong>Midterm</strong> applied — display, scoring, and result visibility settings loaded. Set dates below.</div>
+  <p class="info-txt">To change what students see, <span class="link-s" onclick="go(4)">edit the Midterm preset</span> or use <span class="link-s" onclick="openTray('midterm')">Settings</span>.</p>
+
+  <!-- Assign to students -->
+  <div class="section">
+    <div class="sec-hdr" onclick="tog('s5-assign')">
+      <span class="sec-hdr-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="s5-assign-chev"><polyline points="18 15 12 9 6 15"/></svg>Assign to students</span>
+    </div>
+    <div class="sec-body" id="s5-assign">
+      <div class="f-row"><span class="f-lbl">Assessment type</span><select class="select" style="min-width:160px"><option>Graded</option></select></div>
+      <div class="f-row"><span class="f-lbl">Assignment group</span><select class="select" style="min-width:160px"><option>Assignment</option></select></div>
+      <div class="f-row"><span class="f-lbl">Points possible</span><input type="number" class="input" value="0" style="width:80px"/></div>
+      <div class="tg-wrap" style="margin-bottom:6px"><div class="tg-track" onclick="toggleSub(this)"><div class="tg-thumb"></div></div><span class="tg-lbl">Time limit</span></div>
+      <div class="tg-sub" style="display:none;padding-left:50px;margin-bottom:16px"><div style="display:flex;gap:20px"><div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Hours</div><input type="number" class="input" value="1" style="width:70px"/></div><div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Minutes</div><input type="number" class="input" value="0" style="width:70px"/></div></div></div>
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Assign to</h3>
+      <p style="font-size:13px;color:var(--sub);margin-bottom:10px">Everyone, specific students, or groups</p>
+      <div style="border:1px solid var(--border-in);border-radius:var(--r);padding:6px 10px;display:flex;align-items:center;gap:8px;margin-bottom:14px"><span class="a-pill">Everyone <button class="a-x">×</button></span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" style="margin-left:auto"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="dg">
+        <div class="dc"><div class="dc-lbl">Available from</div><div style="font-size:11px;color:var(--sub);margin-bottom:6px;line-height:1.4;min-height:32px">When the quiz becomes open for submissions</div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Date</div><div class="d-btn filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Mon, Jan 20</div><button class="clr-btn">Clear</button></div>
+        <div class="dc"><div class="dc-lbl" style="color:transparent">.</div><div style="margin-bottom:6px;min-height:32px" aria-hidden="true"></div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Time</div><select class="t-sel filled"><option>12:00 AM</option></select></div>
+        <div class="dc"><div class="dc-lbl">Due on</div><div style="font-size:11px;color:var(--sub);margin-bottom:6px;line-height:1.4;min-height:32px">Last time quiz can be submitted for full credit</div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Date</div><div class="d-btn filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Fri, Jan 24</div><button class="clr-btn">Clear</button></div>
+        <div class="dc"><div class="dc-lbl" style="color:transparent">.</div><div style="margin-bottom:6px;min-height:32px" aria-hidden="true"></div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Time</div><select class="t-sel filled"><option>11:59 PM</option></select></div>
+        <div class="dc"><div class="dc-lbl">Until</div><div style="font-size:11px;color:var(--sub);margin-bottom:6px;line-height:1.4;min-height:32px">When submissions are no longer accepted</div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div><button class="clr-btn">Clear</button></div>
+        <div class="dc"><div class="dc-lbl" style="color:transparent">.</div><div style="margin-bottom:6px;min-height:32px" aria-hidden="true"></div><div style="font-size:12px;color:var(--sub);margin-bottom:4px">Time</div><select class="t-sel"><option>Select</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Release results -->
+  <div class="section">
+    <div class="sec-hdr" onclick="tog('s5-release')">
+      <span class="sec-hdr-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="s5-release-chev"><polyline points="18 15 12 9 6 15"/></svg>Release results</span>
+    </div>
+    <div class="sec-body" id="s5-release">
+      <!-- Master date row — visible when toggle is OFF -->
+      <div id="s5-single">
+        <div class="sh-row">
+          <div><div class="sh-lbl">Show on</div><div class="sh-sub">Last time quiz can be submitted for full credit</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div>
+          <div><div class="sh-lbl">Hide on</div><div class="sh-sub">When the quiz becomes open for submissions</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div>
+        </div>
+      </div>
+      <!-- Toggle -->
+      <div class="tg-wrap" style="margin:14px 0 10px"><div class="tg-track" id="s5-per-tg" onclick="togglePerOption('s5')"><div class="tg-thumb"></div></div><span class="tg-lbl">Set different schedules for each result view option</span></div>
+      <!-- Views list — visible when toggle is OFF -->
+      <div id="s5-views">
+        <div class="ci"><div class="cc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Show questions</div>
+        <div class="ci"><div class="cc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Show student responses</div>
+        <div class="ci"><div class="cc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Indicate responses as correct or incorrect</div>
+        <div class="ci"><div class="cc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Show correct answer</div>
+        <div class="ci"><div class="cc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Show answer feedback</div>
+      </div>
+      <!-- Per-view date rows — visible when toggle is ON -->
+      <div id="s5-multi" style="display:none">
+        <div class="multi-row"><div class="multi-lbl">Show questions</div><div class="sh-row"><div><div class="sh-lbl">Show on</div><div class="sh-sub">Last time quiz can be submitted for full credit</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div><div><div class="sh-lbl">Hide on</div><div class="sh-sub">When the quiz becomes open for submissions</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div></div></div>
+        <div class="multi-row"><div class="multi-lbl">Show student responses</div><div class="sh-row"><div><div class="sh-lbl">Show on</div><div class="sh-sub">Last time quiz can be submitted for full credit</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div><div><div class="sh-lbl">Hide on</div><div class="sh-sub">When the quiz becomes open for submissions</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div></div></div>
+        <div class="multi-row"><div class="multi-lbl">Indicate responses as correct or incorrect</div><div class="sh-row"><div><div class="sh-lbl">Show on</div><div class="sh-sub">Last time quiz can be submitted for full credit</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div><div><div class="sh-lbl">Hide on</div><div class="sh-sub">When the quiz becomes open for submissions</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div></div></div>
+        <div class="multi-row"><div class="multi-lbl">Show correct answer</div><div class="sh-row"><div><div class="sh-lbl">Show on</div><div class="sh-sub">Last time quiz can be submitted for full credit</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div><div><div class="sh-lbl">Hide on</div><div class="sh-sub">When the quiz becomes open for submissions</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div></div></div>
+        <div class="multi-row"><div class="multi-lbl">Show answer feedback</div><div class="sh-row"><div><div class="sh-lbl">Show on</div><div class="sh-sub">Last time quiz can be submitted for full credit</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div><div><div class="sh-lbl">Hide on</div><div class="sh-sub">When the quiz becomes open for submissions</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div></div></div>
+      </div>
+      <p style="font-size:13px;color:var(--sub);margin-top:10px">To change which result views are included <span class="link-s" onclick="openTray('midterm')">Customize student view</span>.</p>
+    </div>
+  </div>
+
+  <!-- Restrict access (collapsed) -->
+  <div class="section">
+    <div class="sec-hdr" onclick="tog('s5-restrict')">
+      <span class="sec-hdr-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="s5-restrict-chev" style="transform:rotate(180deg)"><polyline points="18 15 12 9 6 15"/></svg>Restrict access</span>
+    </div>
+    <div class="sec-body" id="s5-restrict" style="display:none"></div>
+  </div>
+</div>
+</div>
+
+</main><!-- /main -->
+</div><!-- /app -->
+
+<!-- Global tooltip -->
+<div id="g-tip"></div>
+
+<!-- Loading overlay -->
+<div class="loading-ov" id="loading-ov">
+  <div class="spinner"></div>
+  <span style="font-size:14px;color:var(--sub)">Loading…</span>
+</div>
+
+<!-- ════════════════════════════════
+     SETTINGS TRAY
+════════════════════════════════ -->
+<div class="tray-ov" id="tray-ov" onclick="closeTray()"></div>
+<aside class="tray" id="tray" role="dialog" aria-label="Quiz settings">
+  <div class="tray-hdr">
+    <span class="tray-t" id="tray-title">Settings</span>
+    <button class="tray-x" onclick="closeTray()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="tray-bdy">
+    <!-- Empty state tray content -->
+    <div id="tray-empty">
+      <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--sub)">PRESET</div><select class="select" style="width:100%"><option value="">Select preset</option></select><button class="link-s" style="margin-top:8px;display:block;background:none;border:none;padding:0;font-family:var(--font)" onclick="closeTray();go(3)">Manage →</button></div>
+      <div class="tray-sec"><div class="tray-sh"><span style="display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Display</span></div><div class="tray-sb"><div class="tray-row"><div class="ti off"></div> Shuffle questions</div><div class="tray-row"><div class="ti off"></div> Shuffle answers</div><div class="tray-row"><div class="ti off"></div> One question at a time <span class="ii" style="margin-left:4px">i</span></div><div class="tray-row"><div class="ti off"></div> Allow backtracking</div><div class="tray-row"><div class="ti off"></div> Lock question after answering</div></div></div>
+      <div class="tray-sec"><div class="tray-sh"><span style="display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Scoring</span></div><div class="tray-sb"><div style="margin-bottom:12px"><select class="select" style="width:100%"><option>Points</option><option>Percentage</option><option>Pass/Fail</option></select></div><div class="tray-row"><div class="ti off"></div> Allow multiple attempts</div><div class="tray-row"><div class="ti off"></div> Don't count towards final grade</div><div class="tray-row"><div class="ti off"></div> Sync to SIS <span class="ii" style="margin-left:4px">i</span></div><div class="tray-row"><div class="ti off"></div> Hide names while grading <span class="ii" style="margin-left:4px">i</span></div></div></div>
+      <div class="tray-sec"><div class="tray-sh"><span style="display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Student results view</span></div><div class="tray-sb">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">Final scores</div>
+        <div class="tray-row"><div class="ti"></div> Show points awarded <span class="ii" style="margin-left:4px">i</span></div>
+        <div class="tray-row"><div class="ti"></div> Show points possible <span class="ii" style="margin-left:4px">i</span></div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:10px 0"/>
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">Results</div>
+        <div class="tray-row"><div class="ti" data-controls="te-q-sub"></div> Show questions</div>
+        <div id="te-q-sub" style="display:none;padding-left:16px">
+          <div class="tray-radios">
+            <label class="tray-radio"><input type="radio" name="te-q" checked/> Always available</label>
+            <label class="tray-radio"><input type="radio" name="te-q"/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+            <label class="tray-radio"><input type="radio" name="te-q"/> Once after each attempt</label>
+            <label class="tray-radio"><input type="radio" name="te-q"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+            <label class="tray-radio"><input type="radio" name="te-q"/> Only once after final attempt</label>
+          </div>
+          <div class="tray-row"><div class="ti" data-controls="te-sr-sub"></div> Show student responses</div>
+          <div id="te-sr-sub" style="display:none;padding-left:16px">
+            <div class="tray-radios">
+              <label class="tray-radio"><input type="radio" name="te-sr" checked/> Always available</label>
+              <label class="tray-radio"><input type="radio" name="te-sr"/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="te-sr"/> Once after each attempt</label>
+              <label class="tray-radio"><input type="radio" name="te-sr"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="te-sr"/> Only once after final attempt</label>
+            </div>
+          </div>
+          <div class="tray-row"><div class="ti" data-controls="te-ci-sub"></div> Indicate responses as correct or incorrect</div>
+          <div id="te-ci-sub" style="display:none;padding-left:16px">
+            <div class="tray-radios">
+              <label class="tray-radio"><input type="radio" name="te-ci" checked/> Always available</label>
+              <label class="tray-radio"><input type="radio" name="te-ci"/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="te-ci"/> Once after each attempt</label>
+              <label class="tray-radio"><input type="radio" name="te-ci"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="te-ci"/> Only once after final attempt</label>
+            </div>
+          </div>
+          <div class="tray-row"><div class="ti" data-controls="te-ca-sub"></div> Show correct answer</div>
+          <div id="te-ca-sub" style="display:none;padding-left:16px">
+            <div class="tray-radios">
+              <label class="tray-radio"><input type="radio" name="te-ca" checked/> Always available</label>
+              <label class="tray-radio"><input type="radio" name="te-ca"/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="te-ca"/> Once after each attempt</label>
+              <label class="tray-radio"><input type="radio" name="te-ca"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="te-ca"/> Only once after final attempt</label>
+            </div>
+          </div>
+          <div class="tray-row"><div class="ti" data-controls="te-af-sub"></div> Show answer feedback</div>
+          <div id="te-af-sub" style="display:none;padding-left:16px">
+            <div class="tray-radios">
+              <label class="tray-radio"><input type="radio" name="te-af" checked/> Always available</label>
+              <label class="tray-radio"><input type="radio" name="te-af"/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="te-af"/> Once after each attempt</label>
+              <label class="tray-radio"><input type="radio" name="te-af"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="te-af"/> Only once after final attempt</label>
+            </div>
+          </div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:10px 0"/>
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">Feedback</div>
+        <div class="tray-row"><div class="ti"></div> Show general feedback <span class="ii" style="margin-left:4px">i</span></div>
+      </div></div>
+      <div class="tray-sec"><div class="tray-sh"><span style="display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Add restrictions</span></div><div class="tray-sb"><div class="tray-row"><div class="ti off"></div> Block document uploads <span class="ii" style="margin-left:4px">i</span></div><div class="tray-row"><div class="ti off"></div> Detect multiple sessions <span class="ii" style="margin-left:4px">i</span></div></div></div>
+    </div>
+    <!-- Midterm state tray content -->
+    <div id="tray-midterm" style="display:none">
+      <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--sub)">PRESET</div><select class="select" style="width:100%"><option selected>Midterm</option></select><button class="link-s" style="margin-top:8px;display:block;background:none;border:none;padding:0;font-family:var(--font)" onclick="closeTray();go(4)">Manage →</button></div>
+      <div class="tray-sec"><div class="tray-sh"><span style="display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Display</span></div><div class="tray-sb"><div class="tray-row"><div class="ti off"></div> Shuffle questions</div><div class="tray-row"><div class="ti off"></div> Shuffle answers</div><div class="tray-row"><div class="ti on"></div> One question at a time <span class="ii" style="margin-left:4px">i</span></div></div></div>
+      <div class="tray-sec"><div class="tray-sh"><span style="display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Scoring</span></div><div class="tray-sb"><div style="margin-bottom:10px"><select class="select" style="width:100%"><option>Points</option></select></div><div class="tray-row"><div class="ti on"></div> Allow multiple attempts <span style="font-size:12px;color:var(--sub)">(3)</span></div><div class="tray-row"><div class="ti off"></div> Don't count towards final grade</div><div class="tray-row"><div class="ti on"></div> Sync to SIS</div></div></div>
+      <div class="tray-sec"><div class="tray-sh"><span style="display:inline-flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>Student results view</span></div><div class="tray-sb">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">Final scores</div>
+        <div class="tray-row"><div class="ti on"></div> Show points awarded</div>
+        <div class="tray-row"><div class="ti on"></div> Show points possible</div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:10px 0"/>
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">Results</div>
+        <div class="tray-row"><div class="ti on" data-controls="tm-q-sub"></div> Show questions</div>
+        <div id="tm-q-sub" style="padding-left:16px">
+          <div class="tray-radios">
+            <label class="tray-radio"><input type="radio" name="tm-q"/> Always available</label>
+            <label class="tray-radio"><input type="radio" name="tm-q" checked/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+            <label class="tray-radio"><input type="radio" name="tm-q"/> Once after each attempt</label>
+            <label class="tray-radio"><input type="radio" name="tm-q"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+            <label class="tray-radio"><input type="radio" name="tm-q"/> Only once after final attempt</label>
+          </div>
+          <div class="tray-row"><div class="ti on" data-controls="tm-sr-sub"></div> Show student responses</div>
+          <div id="tm-sr-sub" style="padding-left:16px">
+            <div class="tray-radios">
+              <label class="tray-radio"><input type="radio" name="tm-sr"/> Always available</label>
+              <label class="tray-radio"><input type="radio" name="tm-sr" checked/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="tm-sr"/> Once after each attempt</label>
+              <label class="tray-radio"><input type="radio" name="tm-sr"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="tm-sr"/> Only once after final attempt</label>
+            </div>
+          </div>
+          <div class="tray-row"><div class="ti on" data-controls="tm-ci-sub"></div> Indicate responses as correct or incorrect</div>
+          <div id="tm-ci-sub" style="padding-left:16px">
+            <div class="tray-radios">
+              <label class="tray-radio"><input type="radio" name="tm-ci"/> Always available</label>
+              <label class="tray-radio"><input type="radio" name="tm-ci" checked/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="tm-ci"/> Once after each attempt</label>
+              <label class="tray-radio"><input type="radio" name="tm-ci"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="tm-ci"/> Only once after final attempt</label>
+            </div>
+          </div>
+          <div class="tray-row"><div class="ti on" data-controls="tm-ca-sub"></div> Show correct answer</div>
+          <div id="tm-ca-sub" style="padding-left:16px">
+            <div class="tray-radios">
+              <label class="tray-radio"><input type="radio" name="tm-ca"/> Always available</label>
+              <label class="tray-radio"><input type="radio" name="tm-ca" checked/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="tm-ca"/> Once after each attempt</label>
+              <label class="tray-radio"><input type="radio" name="tm-ca"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="tm-ca"/> Only once after final attempt</label>
+            </div>
+          </div>
+          <div class="tray-row"><div class="ti on" data-controls="tm-af-sub"></div> Show answer feedback</div>
+          <div id="tm-af-sub" style="padding-left:16px">
+            <div class="tray-radios">
+              <label class="tray-radio"><input type="radio" name="tm-af"/> Always available</label>
+              <label class="tray-radio"><input type="radio" name="tm-af" checked/> Scheduled <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="tm-af"/> Once after each attempt</label>
+              <label class="tray-radio"><input type="radio" name="tm-af"/> Only after final attempt <span class="ii" style="margin-left:2px">i</span></label>
+              <label class="tray-radio"><input type="radio" name="tm-af"/> Only once after final attempt</label>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <div class="tray-ft">
+    <button class="btn btn-s" onclick="closeTray()">Cancel</button>
+    <button class="btn btn-p" onclick="applyTraySettings()">Apply</button>
+  </div>
+</aside>
+
+<!-- ════════════════════════════════
+     CREATE PRESET MODAL
+════════════════════════════════ -->
+<div class="modal-ov" id="modal-create">
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-x" onclick="closeModal('create')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <h2 class="modal-t">Create New Preset</h2>
+    <div class="f-field"><label class="f-label" for="create-name">Settings name<span class="req">*</span></label><input type="text" class="input" id="create-name" value="Graded Quiz (Generic)" oninput="checkCreate()"/><p class="f-hint">Unique name required</p></div>
+    <div class="f-field"><label class="f-label" for="create-desc">Description<span class="req">*</span></label><textarea class="textarea" id="create-desc" oninput="checkCreate()">General, timed exam for core course material.</textarea><p class="f-hint">0/75 character limit</p></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal('create')">Cancel</button><button class="btn btn-dis" id="create-confirm" onclick="confirmCreate()">Confirm</button></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     CREATE PRESET MODAL (from s4)
+════════════════════════════════ -->
+<div class="modal-ov" id="modal-create2">
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-x" onclick="closeModal('create2')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <h2 class="modal-t">Create New Preset</h2>
+    <div class="f-field"><label class="f-label" for="create2-name">Settings name<span class="req">*</span></label><input type="text" class="input" id="create2-name" placeholder="e.g. Practice Quiz"/><p class="f-hint">Unique name required</p></div>
+    <div class="f-field"><label class="f-label" for="create2-desc">Description<span class="req">*</span></label><textarea class="textarea" id="create2-desc" placeholder="Describe this preset…"></textarea><p class="f-hint">0/75 character limit</p></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal('create2')">Cancel</button><button class="btn btn-p" onclick="closeModal('create2')">Confirm</button></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     UPDATE PRESET MODAL
+════════════════════════════════ -->
+<div class="modal-ov" id="modal-update">
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-x" onclick="closeModal('update')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <h2 class="modal-t">Update Preset</h2>
+    <p class="modal-body">Saving will override this template and update all linked quizzes. Save as New creates a separate template; existing quizzes won't change.</p>
+    <div class="f-field"><label class="f-label" for="update-name">Saved Settings Name<span class="req">*</span></label><input type="text" class="input" id="update-name" value="Midterm"/></div>
+    <div class="f-field"><label class="f-label" for="update-desc">Description<span class="req">*</span></label><textarea class="textarea" id="update-desc">Timed midterm exam, single attempt, results shown one week after close date.</textarea><p class="f-hint">0/75 character limit</p></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal('update')">Cancel</button><button class="btn btn-s" onclick="closeModal('update')">Save as New</button><button class="btn btn-p" onclick="closeModal('update')">Confirm</button></div>
+  </div>
+</div>
+
+<script>
+// ── Navigation ──
+function go(n) {
+  if ([3,4].includes(n)) {
+    const ov = document.getElementById('loading-ov');
+    ov.classList.add('open');
+    setTimeout(function() { ov.classList.remove('open'); navigateTo(n); }, 900);
+  } else {
+    navigateTo(n);
+  }
+}
+
+function navigateTo(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s' + n).classList.add('active');
+  document.getElementById('main-scroll').scrollTop = 0;
+  document.getElementById('cnav-quizzes').classList.remove('active');
+  document.getElementById('cnav-settings').classList.remove('active');
+  if ([3,4].includes(n)) {
+    document.getElementById('cnav-settings').classList.add('active');
+    document.getElementById('cnav-bread').textContent = 'BISC 101 › Settings';
+  } else {
+    document.getElementById('cnav-quizzes').classList.add('active');
+    document.getElementById('cnav-bread').textContent = 'BISC 101 › Quizzes';
+  }
+}
+
+// ── Settings tray ──
+var currentTrayMode = 'empty';
+function openTray(mode) {
+  currentTrayMode = mode;
+  document.getElementById('tray-empty').style.display = mode === 'empty' ? '' : 'none';
+  document.getElementById('tray-midterm').style.display = mode === 'midterm' ? '' : 'none';
+  document.getElementById('tray-title').textContent = mode === 'midterm' ? 'Settings — Midterm' : 'Settings';
+  document.getElementById('tray').classList.add('open');
+  document.getElementById('tray-ov').classList.add('open');
+}
+function closeTray() {
+  document.getElementById('tray').classList.remove('open');
+  document.getElementById('tray-ov').classList.remove('open');
+}
+
+// ── Apply tray settings → update Release results section ──
+function applyTraySettings() {
+  var mode = currentTrayMode;
+  var rfx = mode === 'empty' ? 'te' : 'tm';
+  var targetId = mode === 'empty' ? 's2-release' : 's5-release';
+  var spx = mode === 'empty' ? 's2' : 's5';
+  var trayEl = document.getElementById('tray-' + mode);
+
+  var resultItems = [
+    { key: 'q',  label: 'Show questions' },
+    { key: 'sr', label: 'Show student responses' },
+    { key: 'ci', label: 'Indicate responses as correct or incorrect' },
+    { key: 'ca', label: 'Show correct answer' },
+    { key: 'af', label: 'Show answer feedback' }
+  ];
+
+  var scheduled = resultItems.filter(function(item) {
+    var tiEl = trayEl.querySelector('[data-controls="' + rfx + '-' + item.key + '-sub"]');
+    if (!tiEl || !tiEl.classList.contains('on')) return false;
+    var radios = document.querySelectorAll('input[name="' + rfx + '-' + item.key + '"]');
+    return radios.length > 1 && radios[1].checked;
+  });
+
+  var target = document.getElementById(targetId);
+  var cal = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+  var chk = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  function half(lbl, sub) {
+    return '<div><div class="sh-lbl">' + lbl + '</div><div class="sh-sub">' + sub + '</div>' +
+      '<div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn">' + cal + 'Select</div></div>' +
+      '<div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div>' +
+      '<button class="clr-btn">Clear</button></div>';
+  }
+  function singleRow() {
+    return '<div class="sh-row">' + half('Show on','Last time quiz can be submitted for full credit') + half('Hide on','When the quiz becomes open for submissions') + '</div>';
+  }
+  function multiRow(label) {
+    return '<div class="multi-row"><div class="multi-lbl">' + label + '</div><div class="sh-row">' +
+      half('Show on','Last time quiz can be submitted for full credit') +
+      half('Hide on','When the quiz becomes open for submissions') + '</div></div>';
+  }
+
+  if (scheduled.length === 0) {
+    target.innerHTML =
+      '<h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Release results to students</h3>' +
+      '<div style="display:flex;align-items:flex-start;gap:10px;background:#EBF3F9;border-left:4px solid #0770A3;border-radius:var(--r);padding:12px 14px;margin-bottom:14px">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10" fill="#0770A3"/><path d="M12 16v-4M12 8h.01" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '<p style="font-size:14px">This quiz uses a template that doesn\'t include a scheduled time window.</p>' +
+      '</div>' +
+      '<p style="font-size:13px;color:var(--sub)">To change which result views are included <span class="link-s" onclick="openTray(\'' + mode + '\')">Customize student view</span>.</p>';
+  } else {
+    var viewItems = scheduled.map(function(i) { return '<div class="ci"><div class="cc">' + chk + '</div>' + i.label + '</div>'; }).join('');
+    var multiRows = scheduled.map(function(i) { return multiRow(i.label); }).join('');
+    target.innerHTML =
+      '<div id="' + spx + '-single">' + singleRow() + '</div>' +
+      '<div class="tg-wrap" style="margin:14px 0 10px"><div class="tg-track" id="' + spx + '-per-tg" onclick="togglePerOption(\'' + spx + '\')"><div class="tg-thumb"></div></div><span class="tg-lbl">Set different schedules for each result view option</span></div>' +
+      '<div id="' + spx + '-views">' + viewItems + '</div>' +
+      '<div id="' + spx + '-multi" style="display:none">' + multiRows + '</div>' +
+      '<p style="font-size:13px;color:var(--sub);margin-top:10px">To change which result views are included <span class="link-s" onclick="openTray(\'' + mode + '\')">Customize student view</span>.</p>';
+  }
+
+  closeTray();
+}
+
+// ── Sub-setting show/hide (tg-track + tg-sub sibling) ──
+function toggleSub(el) {
+  el.classList.toggle('on');
+  var sub = el.closest('.tg-wrap').nextElementSibling;
+  if (sub && sub.classList.contains('tg-sub')) {
+    sub.style.display = el.classList.contains('on') ? '' : 'none';
+  }
+}
+
+// ── Per-option schedule toggle ──
+function togglePerOption(prefix) {
+  const track = document.getElementById(prefix + '-per-tg');
+  const isOn = track.classList.toggle('on');
+  const single = document.getElementById(prefix + '-single');
+  const multi = document.getElementById(prefix + '-multi');
+  const views = document.getElementById(prefix + '-views');
+  if (single) single.style.display = isOn ? 'none' : '';
+  if (multi) multi.style.display = isOn ? '' : 'none';
+  if (views) views.style.display = isOn ? 'none' : '';
+}
+
+// ── Section accordions ──
+function tog(id) {
+  const body = document.getElementById(id);
+  const chevId = id + '-chev';
+  const chev = document.getElementById(chevId);
+  const hidden = body.style.display === 'none';
+  body.style.display = hidden ? '' : 'none';
+  if (chev) chev.style.transform = hidden ? '' : 'rotate(180deg)';
+}
+
+// ── Modals ──
+function openModal(id) {
+  document.getElementById('modal-' + id).classList.add('open');
+  if (id === 'create') { checkCreate(); }
+}
+function closeModal(id) {
+  document.getElementById('modal-' + id).classList.remove('open');
+}
+function checkCreate() {
+  const n = document.getElementById('create-name').value.trim();
+  const d = document.getElementById('create-desc').value.trim();
+  const btn = document.getElementById('create-confirm');
+  btn.className = (n && d) ? 'btn btn-p' : 'btn btn-dis';
+}
+var createdPresetName = '';
+
+function confirmCreate() {
+  const btn = document.getElementById('create-confirm');
+  if (btn.classList.contains('btn-dis')) return;
+  createdPresetName = document.getElementById('create-name').value.trim() || 'New preset';
+  closeModal('create');
+  go(4);
+}
+
+function goBackFromPreset() {
+  // Inject the created preset into Screen 2's dropdown and the empty tray's selector
+  if (createdPresetName) {
+    var sel2 = document.getElementById('s2-preset-sel');
+    if (sel2 && !sel2.querySelector('option[value="preset-new"]')) {
+      var opt = document.createElement('option');
+      opt.value = 'preset-new';
+      opt.textContent = createdPresetName;
+      sel2.appendChild(opt);
+    }
+    var traysel = document.querySelector('#tray-empty select.select');
+    if (traysel && !traysel.querySelector('option[value="preset-new"]')) {
+      var topt = document.createElement('option');
+      topt.value = 'preset-new';
+      topt.textContent = createdPresetName;
+      traysel.appendChild(topt);
+    }
+  }
+  go(2);
+}
+
+// Close modals on overlay click
+['create','create2','update'].forEach(id => {
+  document.getElementById('modal-' + id).addEventListener('click', function(e) {
+    if (e.target === this) closeModal(id);
+  });
+});
+
+// Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeTray();
+    ['create','create2','update'].forEach(id => closeModal(id));
+  }
+});
+
+// .ti toggles — click to toggle on/off; data-controls reveals nested content
+document.querySelectorAll('.ti').forEach(function(el) {
+  el.addEventListener('click', function() {
+    this.classList.toggle('on');
+    var controls = this.dataset.controls;
+    if (controls) {
+      var sub = document.getElementById(controls);
+      if (sub) sub.style.display = this.classList.contains('on') ? '' : 'none';
+    }
+  });
+});
+
+// ── Tooltips ──
+var tipMap = {
+  'one question at a time': 'Students see one question before moving to the next. They can\'t jump ahead or skip around during the quiz.',
+  'allow backtracking': 'Lets students navigate back to previous questions while One Question at a Time is on.',
+  'allow multiple attempts': 'Students can retake the quiz. Configure attempt limits, timing rules, and how their score is calculated.',
+  'sync to sis': 'Send grades to the school\'s student information system.',
+  'hide names while grading': 'Reduce accidental bias while grading.',
+  'final scores': 'Control whether students see points, even when review details are restricted.',
+  'show points awarded': 'Shows how many points the student actually earned on the quiz. When "Show questions" is enabled, question-level points are also shown.',
+  'show points possible': 'Shows the total points the quiz is worth (e.g. "out of 28"). Students see this alongside their earned score.',
+  'show questions': 'After submitting, students can review the quiz questions they were shown. Turn this off to keep question content confidential after the exam.',
+  'show student responses': 'Students can see the answers they selected or wrote for each question. Turn this off to prevent students from sharing exact responses with others.',
+  'show responses': 'Students can see the answers they selected or wrote for each question. Turn this off to prevent students from sharing exact responses with others.',
+  'correct/incorrect': 'Students can see which of their answers were marked correct or incorrect.',
+  'indicate responses as correct or incorrect': 'Students can see which of their answers were marked correct or incorrect.',
+  'correct answer': 'Students can see the right answer for each question. Turn this off to prevent answer sharing between students who may take the quiz at different times.',
+  'show correct answer': 'Students can see the right answer for each question. Turn this off to prevent answer sharing.',
+  'answer feedback': 'Students can see the written feedback for each answer choice. Turn this off to keep feedback private until you\'re ready to share it.',
+  'show answer feedback': 'Students can see the written feedback for each answer choice. Turn this off to keep feedback private.',
+  'show general feedback': 'Displays any overall feedback you\'ve written for the quiz as a whole — not per-question feedback. Students see this on the results screen.',
+  'block document uploads': 'Prevents students from uploading files in the Rich Content Editor for essay question responses.',
+  'detect multiple sessions': 'Warns students accessing the quiz from multiple devices; these sessions are highlighted in the Activity Log, accessible to admins and those with the necessary permissions.',
+  'scheduled': 'Results become visible on a date you set per quiz, in the Manage tab. You can also set a Hide on date to close access again.',
+  'at a scheduled time': 'Results become visible on a date you set per quiz, in the Manage tab. You can also set a Hide on date to close access again.',
+  'only after final attempt': 'Visible permanently once the student has used all allowed attempts or the due date has passed.',
+  'only once after final attempt': 'Students get a single viewing session after their final attempt. Once they navigate away, they can\'t return to this view.',
+  'once after each attempt': 'Students get one viewing session per attempt. Once they leave the results page, access is removed until they submit their next attempt.',
+  'require student access code': 'Students must enter a code to start the quiz. Use this to control when students can begin.',
+  'filter ip addresses': 'Restrict quiz access to specific network ranges, such as a lab or classroom.',
+};
+
+var gTip = document.getElementById('g-tip');
+document.querySelectorAll('.ii').forEach(function(el) {
+  if (el.getAttribute('onclick')) return; // skip click-based tooltips
+  el.addEventListener('mouseenter', function(e) {
+    var ctx = (el.closest('label') || el.parentElement).textContent.toLowerCase().trim().replace(/\s+/g,' ');
+    var txt = null;
+    for (var k in tipMap) { if (ctx.includes(k)) { txt = tipMap[k]; break; } }
+    if (!txt) return;
+    gTip.textContent = txt;
+    gTip.style.display = 'block';
+    var r = el.getBoundingClientRect();
+    var top = r.top - gTip.offsetHeight - 10;
+    if (top < 8) top = r.bottom + 8;
+    var left = r.left + r.width/2 - 130;
+    if (left < 8) left = 8;
+    if (left + 260 > window.innerWidth - 8) left = window.innerWidth - 268;
+    gTip.style.top = top + 'px';
+    gTip.style.left = left + 'px';
+  });
+  el.addEventListener('mouseleave', function() { gTip.style.display = 'none'; });
+});
+</script>
+
+<!-- ============================================================
+     Supabase persistence layer
+     Paste your Supabase project URL and anon key below.
+     Both values come from: Supabase dashboard > Project Settings > API
+     ============================================================ -->
+<script>
+const SUPABASE_URL      = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+// Identifies this prototype so multiple prototypes can share one Supabase
+// table without overwriting each other. Change this for each new prototype.
+const PROTOTYPE_ID      = 'ams-delivery';
+</script>
+
+<!-- Tiny status pill in the bottom-right corner -->
+<div id="sb-status" style="position:fixed;bottom:10px;right:12px;font:11px/1.4 var(--font,sans-serif);background:#fff;border:1px solid #C7CDD1;border-radius:12px;padding:4px 10px;color:#6B7C85;box-shadow:0 1px 3px rgba(0,0,0,.12);z-index:9999;user-select:none">Loading…</div>
+
+<script>
+(function () {
+  const cfgMissing =
+    !SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL' ||
+    !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY';
+
+  const statusEl = document.getElementById('sb-status');
+  function setStatus(text, color) {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.style.color = color || '#6B7C85';
+  }
+
+  if (cfgMissing) {
+    setStatus('Supabase not configured', '#9A3B2E');
+    console.warn('[AMS] Supabase URL / anon key not set — settings will not persist.');
+    return;
+  }
+  if (!window.supabase || !window.supabase.createClient) {
+    setStatus('Supabase SDK not loaded', '#9A3B2E');
+    return;
+  }
+
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Each browser gets a stable session id (no auth needed for the prototype).
+  // Namespaced by prototype so the same DB row isn't shared across prototypes.
+  const SESSION_KEY = 'ams-session-id:' + PROTOTYPE_ID;
+  let rawId = localStorage.getItem(SESSION_KEY);
+  if (!rawId) {
+    rawId = (crypto && crypto.randomUUID) ? crypto.randomUUID() :
+      'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem(SESSION_KEY, rawId);
+  }
+  const sessionId = PROTOTYPE_ID + ':' + rawId;
+
+  // Assign a stable ordinal key to every form element + toggle switch.
+  // Ordinal keys are fine for a prototype; if you change the DOM order later,
+  // previously saved values will simply not apply.
+  function keyElements() {
+    document.querySelectorAll('input, select, textarea').forEach((el, i) => {
+      if (!el.dataset.skey) el.dataset.skey = 'f' + i;
+    });
+    document.querySelectorAll('.tg-track').forEach((el, i) => {
+      if (!el.dataset.skey) el.dataset.skey = 't' + i;
+    });
+  }
+
+  function serialize() {
+    const out = {};
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      const k = el.dataset.skey; if (!k) return;
+      if (el.type === 'checkbox' || el.type === 'radio') out[k] = !!el.checked;
+      else out[k] = el.value;
+    });
+    document.querySelectorAll('.tg-track').forEach(el => {
+      const k = el.dataset.skey; if (!k) return;
+      out[k] = el.classList.contains('on');
+    });
+    return out;
+  }
+
+  function apply(data) {
+    if (!data || typeof data !== 'object') return;
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      const k = el.dataset.skey; if (!k || !(k in data)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!data[k];
+      else el.value = data[k];
+    });
+    document.querySelectorAll('.tg-track').forEach(el => {
+      const k = el.dataset.skey; if (!k || !(k in data)) return;
+      const on = !!data[k];
+      el.classList.toggle('on', on);
+      // Reveal/hide the linked sub-section the same way toggleSub() does
+      const sub = el.parentElement && el.parentElement.nextElementSibling;
+      if (sub && sub.classList && sub.classList.contains('tg-sub')) {
+        sub.style.display = on ? '' : 'none';
+      }
+    });
+  }
+
+  async function load() {
+    setStatus('Loading settings…');
+    const { data, error } = await client
+      .from('settings')
+      .select('data')
+      .eq('session_id', sessionId)
+      .maybeSingle();
+    if (error) { console.error('[AMS] load failed', error); setStatus('Load error', '#9A3B2E'); return; }
+    if (data && data.data) apply(data.data);
+    setStatus('Connected • saved', '#0F7A2E');
+  }
+
+  let saveTimer = null;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    setStatus('Saving…');
+    saveTimer = setTimeout(save, 400);
+  }
+
+  async function save() {
+    const payload = {
+      session_id: sessionId,
+      data: serialize(),
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await client
+      .from('settings')
+      .upsert(payload, { onConflict: 'session_id' });
+    if (error) { console.error('[AMS] save failed', error); setStatus('Save error', '#9A3B2E'); return; }
+    setStatus('Connected • saved', '#0F7A2E');
+  }
+
+  keyElements();
+  load();
+
+  // Save on any form change
+  document.addEventListener('change', scheduleSave, true);
+  // Toggle switches don't fire 'change' — listen for clicks on .tg-track
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.closest && e.target.closest('.tg-track')) {
+      // toggleSub() flips the class synchronously, but click handler may run after
+      setTimeout(scheduleSave, 30);
+    }
+  }, true);
+})();
+</script>
+</body>
+</html>
