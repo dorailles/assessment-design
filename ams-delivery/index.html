@@ -468,6 +468,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--b
     <button class="btn-set" onclick="openTray('empty')">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings
     </button>
+    <button class="btn btn-s" id="s2-reset">Reset</button>
     <span class="ii" onclick="document.getElementById('s2-ttp').classList.toggle('open')">i</span>
     <div class="ttp" id="s2-ttp">
       <button class="ttp-x" onclick="document.getElementById('s2-ttp').classList.remove('open')">×</button>
@@ -1424,6 +1425,24 @@ const PROTOTYPE_ID      = 'ams-delivery';
     return 'preset-' + String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
 
+  // Screen 3 and the tray use slightly different wording for the
+  // same setting. We normalize both sides to the same canonical
+  // label so a "Show responses" toggle on Screen 3 maps to
+  // "Show student responses" in the tray, etc.
+  const LABEL_MAP = {
+    'show responses': 'show responses',
+    'show student responses': 'show responses',
+    'correct/incorrect': 'correct/incorrect',
+    'indicate responses as correct or incorrect': 'correct/incorrect',
+    'correct answer': 'correct answer',
+    'show correct answer': 'correct answer',
+    'answer feedback': 'answer feedback',
+    'show answer feedback': 'answer feedback'
+  };
+  function canonLabel(s) {
+    return s == null ? null : (LABEL_MAP[s] || s);
+  }
+
   // Pull the human label out of a row that contains a .ti toggle.
   // We use this so a toggle labelled "Shuffle questions" on Screen 3
   // and one labelled the same in the tray share a logical key.
@@ -1431,14 +1450,28 @@ const PROTOTYPE_ID      = 'ams-delivery';
     if (!row) return null;
     const clone = row.cloneNode(true);
     clone.querySelectorAll('.ti, .ii, svg, .tg-track, .tg-thumb').forEach(n => n.remove());
-    return clone.textContent.trim().toLowerCase().replace(/\s+/g, ' ');
+    const raw = clone.textContent.trim().toLowerCase().replace(/\s+/g, ' ');
+    return canonLabel(raw);
   }
   function checkboxLabel(el) {
     const lbl = el.closest('label');
     if (!lbl) return null;
     const clone = lbl.cloneNode(true);
     clone.querySelectorAll('input, .ii, svg').forEach(n => n.remove());
-    return clone.textContent.trim().toLowerCase().replace(/\s+/g, ' ');
+    const raw = clone.textContent.trim().toLowerCase().replace(/\s+/g, ' ');
+    return canonLabel(raw);
+  }
+  // Identify selects we should NEVER capture or overwrite — namely
+  // the preset dropdowns themselves. Otherwise picking a preset on
+  // Screen 3 would clobber the tray's own preset dropdown.
+  function isPresetSelect(el, root) {
+    if (!el) return false;
+    if (el.classList && el.classList.contains('p-sel')) return true;
+    if (root && root.id === 'tray-empty') {
+      const firstChildSelect = root.querySelector(':scope > div:first-child select');
+      if (firstChildSelect && el === firstChildSelect) return true;
+    }
+    return false;
   }
   // Strip the screen prefix (s3-, te-, tm-, s4-, s5-) so radio groups
   // can map across screens by their suffix (q, sr, ci, ca, af, …).
@@ -1457,7 +1490,10 @@ const PROTOTYPE_ID      = 'ams-delivery';
       const lbl = checkboxLabel(el);
       if (lbl) data.booleans[lbl] = el.checked;
     });
-    root.querySelectorAll('select').forEach(el => data.selects.push(el.selectedIndex));
+    root.querySelectorAll('select').forEach(el => {
+      if (isPresetSelect(el, root)) return;
+      data.selects.push(el.selectedIndex);
+    });
     const groups = {};
     root.querySelectorAll('input[type="radio"]').forEach(el => {
       if (!groups[el.name]) groups[el.name] = [];
@@ -1494,8 +1530,10 @@ const PROTOTYPE_ID      = 'ams-delivery';
       });
     }
     if (Array.isArray(data.selects)) {
-      root.querySelectorAll('select').forEach((el, i) => {
-        const v = data.selects[i];
+      let i = 0;
+      root.querySelectorAll('select').forEach(el => {
+        if (isPresetSelect(el, root)) return;
+        const v = data.selects[i++];
         if (v != null && v < el.options.length) el.selectedIndex = v;
       });
     }
@@ -1640,14 +1678,86 @@ const PROTOTYPE_ID      = 'ams-delivery';
   }
 
   // ── Tray wiring ──
+  // When the user manually changes anything in the tray after
+  // applying a preset, switch the tray's preset dropdown to "Custom"
+  // so they know the quiz has diverged from the saved preset.
+  let trayApplying = false;
+  const CUSTOM_VALUE = '__custom__';
+
+  function ensureCustomOption(sel) {
+    if (!sel) return;
+    if (sel.querySelector('option[value="' + CUSTOM_VALUE + '"]')) return;
+    const opt = document.createElement('option');
+    opt.value = CUSTOM_VALUE;
+    opt.textContent = 'Custom';
+    sel.appendChild(opt);
+  }
+  function clearCustomOption(sel) {
+    if (!sel) return;
+    const opt = sel.querySelector('option[value="' + CUSTOM_VALUE + '"]');
+    if (opt) opt.remove();
+  }
+  function markTrayCustom() {
+    if (trayApplying) return;
+    const sel = traySel(); if (!sel) return;
+    ensureCustomOption(sel);
+    sel.value = CUSTOM_VALUE;
+  }
+
   function wireTray() {
     const tray = document.getElementById('tray-empty');
     const sel = traySel();
     if (!tray || !sel) return;
+
     sel.addEventListener('change', () => {
-      const v = sel.value; if (!v) return;
+      const v = sel.value;
+      if (!v) return;
+      if (v === CUSTOM_VALUE) return; // user re-picking Custom does nothing
       const p = allPresets.find(x => slugify(x.name) === v);
-      if (p && p.settings) applyForm(tray, p.settings);
+      if (p && p.settings) {
+        trayApplying = true;
+        applyForm(tray, p.settings);
+        clearCustomOption(sel);
+        sel.value = v;
+        setTimeout(() => { trayApplying = false; }, 50);
+      }
+    });
+
+    // Manual edits → "Custom"
+    tray.addEventListener('change', e => {
+      if (trayApplying) return;
+      if (e.target === sel) return;
+      markTrayCustom();
+    }, true);
+    tray.addEventListener('click', e => {
+      if (trayApplying) return;
+      if (!e.target || !e.target.closest) return;
+      const ti = e.target.closest('.ti');
+      if (!ti || !tray.contains(ti)) return;
+      // The prototype's own .ti click handler runs first (toggles .on),
+      // so by next tick the new state is visible. We just flip to Custom.
+      setTimeout(markTrayCustom, 0);
+    }, true);
+  }
+
+  // ── Screen 2 wiring ──
+  // Reset button next to the Settings button on the Manage tab.
+  // Clears the tray form, both preset dropdowns, and any "Custom" tag.
+  function wireScreen2() {
+    const btn = document.getElementById('s2-reset');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const tray = document.getElementById('tray-empty');
+      if (tray) {
+        trayApplying = true;
+        resetForm(tray);
+        const tsel = traySel();
+        if (tsel) { clearCustomOption(tsel); tsel.value = ''; }
+        setTimeout(() => { trayApplying = false; }, 50);
+      }
+      const s2 = s2Sel();
+      if (s2) { clearCustomOption(s2); s2.value = ''; }
+      setStatus('Quiz settings cleared', '#0F7A2E');
     });
   }
 
@@ -1665,6 +1775,7 @@ const PROTOTYPE_ID      = 'ams-delivery';
     }));
     rebuildDropdowns();
     wireScreen3();
+    wireScreen2();
     wireTray();
     presetCountStatus();
   }
