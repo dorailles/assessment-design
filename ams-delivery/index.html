@@ -127,6 +127,16 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--b
 /* Global tooltip — positioned by JS */
 #g-tip{position:fixed;background:#2D3B45;color:#fff;border-radius:6px;padding:9px 13px;font-size:12px;line-height:1.5;white-space:normal;width:260px;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,.25);pointer-events:none;display:none}
 .link-s{color:var(--link);text-decoration:none;cursor:pointer;font-size:13px}
+.link-reset{color:var(--link);background:none;border:none;cursor:pointer;font-family:var(--font);font-size:13px;padding:0;text-decoration:none;line-height:1.4}
+.link-reset:hover:not([aria-disabled="true"]){text-decoration:underline}
+.link-reset[aria-disabled="true"]{color:var(--sub);cursor:not-allowed;opacity:.55}
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--border);border-left:4px solid var(--on);border-radius:6px;padding:12px 40px 12px 16px;font-size:13px;color:var(--text);box-shadow:var(--sh2);z-index:9998;display:flex;align-items:center;gap:10px;max-width:560px;opacity:1;transition:opacity .25s,transform .25s}
+.toast.hide{opacity:0;transform:translate(-50%,-10px)}
+.toast-check{color:var(--on);flex-shrink:0}
+.toast-x{position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;color:var(--sub);font-size:20px;line-height:1;padding:2px 6px;font-family:var(--font)}
+.toast-x:hover{color:var(--text)}
+/* Hide the static "Preset applied" banner on Screen 5 — toast replaces it */
+.p-banner{display:none !important}
 .link-s:hover{text-decoration:underline}
 
 /* Info text */
@@ -468,8 +478,8 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--b
     <button class="btn-set" onclick="openTray('empty')">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings
     </button>
-    <button class="btn btn-s" id="s2-reset">Reset</button>
     <span class="ii" onclick="document.getElementById('s2-ttp').classList.toggle('open')">i</span>
+    <button class="link-reset" id="s2-reset" aria-disabled="true">Reset</button>
     <div class="ttp" id="s2-ttp">
       <button class="ttp-x" onclick="document.getElementById('s2-ttp').classList.remove('open')">×</button>
       Presets save time — bundle your quiz settings under a name once, then apply them to any quiz.
@@ -821,13 +831,14 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--b
   <div class="preset-row">
     <span class="p-lbl">Presets</span>
     <div class="p-sw"><select class="p-sel applied"><option value="midterm" selected>Midterm</option></select><svg class="p-arr" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-    <button class="btn-set" onclick="openTray('midterm')">
+    <button class="btn-set" onclick="openTray('empty')">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings
     </button>
     <span class="ii">i</span>
+    <button class="link-reset" id="s5-reset">Reset</button>
   </div>
   <div class="p-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Preset <strong>Midterm</strong> applied — display, scoring, and result visibility settings loaded. Set dates below.</div>
-  <p class="info-txt">To change what students see, <span class="link-s" onclick="go(4)">edit the Midterm preset</span> or use <span class="link-s" onclick="openTray('midterm')">Settings</span>.</p>
+  <p class="info-txt">To change what students see, <span class="link-s" onclick="go(4)">edit the Midterm preset</span> or use <span class="link-s" onclick="openTray('empty')">Settings</span>.</p>
 
   <!-- Assign to students -->
   <div class="section">
@@ -885,7 +896,7 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--b
         <div class="multi-row"><div class="multi-lbl">Show correct answer</div><div class="sh-row"><div><div class="sh-lbl">Show on</div><div class="sh-sub">Last time quiz can be submitted for full credit</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div><div><div class="sh-lbl">Hide on</div><div class="sh-sub">When the quiz becomes open for submissions</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div></div></div>
         <div class="multi-row"><div class="multi-lbl">Show answer feedback</div><div class="sh-row"><div><div class="sh-lbl">Show on</div><div class="sh-sub">Last time quiz can be submitted for full credit</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div><div><div class="sh-lbl">Hide on</div><div class="sh-sub">When the quiz becomes open for submissions</div><div class="sh-flds"><div><div class="d-sublbl">Date</div><div class="d-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Select</div></div><div><div class="d-sublbl">Time</div><select class="t-sel"><option>Select</option></select></div></div><button class="clr-btn">Clear</button></div></div></div>
       </div>
-      <p style="font-size:13px;color:var(--sub);margin-top:10px">To change which result views are included <span class="link-s" onclick="openTray('midterm')">Customize student view</span>.</p>
+      <p style="font-size:13px;color:var(--sub);margin-top:10px">To change which result views are included <span class="link-s" onclick="openTray('empty')">Customize student view</span>.</p>
     </div>
   </div>
 
@@ -1673,6 +1684,7 @@ const PROTOTYPE_ID      = 'ams-delivery';
         currentPresetIdx = idx;
         applyForm(s3, allPresets[idx].settings);
         setUpdateBtn(true);
+        presetAppliedToast(allPresets[idx].name);
       });
     }
   }
@@ -1711,8 +1723,8 @@ const PROTOTYPE_ID      = 'ams-delivery';
 
     sel.addEventListener('change', () => {
       const v = sel.value;
-      if (!v) return;
-      if (v === CUSTOM_VALUE) return; // user re-picking Custom does nothing
+      if (!v) { updateResetState(); return; }
+      if (v === CUSTOM_VALUE) { updateResetState(); return; }
       const p = allPresets.find(x => slugify(x.name) === v);
       if (p && p.settings) {
         trayApplying = true;
@@ -1720,7 +1732,9 @@ const PROTOTYPE_ID      = 'ams-delivery';
         clearCustomOption(sel);
         sel.value = v;
         setTimeout(() => { trayApplying = false; }, 50);
+        presetAppliedToast(p.name);
       }
+      updateResetState();
     });
 
     // Manual edits → "Custom"
@@ -1728,37 +1742,124 @@ const PROTOTYPE_ID      = 'ams-delivery';
       if (trayApplying) return;
       if (e.target === sel) return;
       markTrayCustom();
+      updateResetState();
     }, true);
     tray.addEventListener('click', e => {
       if (trayApplying) return;
       if (!e.target || !e.target.closest) return;
       const ti = e.target.closest('.ti');
       if (!ti || !tray.contains(ti)) return;
-      // The prototype's own .ti click handler runs first (toggles .on),
-      // so by next tick the new state is visible. We just flip to Custom.
-      setTimeout(markTrayCustom, 0);
+      setTimeout(() => { markTrayCustom(); updateResetState(); }, 0);
     }, true);
   }
 
-  // ── Screen 2 wiring ──
-  // Reset button next to the Settings button on the Manage tab.
-  // Clears the tray form, both preset dropdowns, and any "Custom" tag.
-  function wireScreen2() {
-    const btn = document.getElementById('s2-reset');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      const tray = document.getElementById('tray-empty');
-      if (tray) {
-        trayApplying = true;
-        resetForm(tray);
-        const tsel = traySel();
-        if (tsel) { clearCustomOption(tsel); tsel.value = ''; }
-        setTimeout(() => { trayApplying = false; }, 50);
-      }
-      const s2 = s2Sel();
-      if (s2) { clearCustomOption(s2); s2.value = ''; }
-      setStatus('Quiz settings cleared', '#0F7A2E');
-    });
+  // ── Toast (floating "Preset X applied") ──
+  let activeToast = null;
+  function showToast(message) {
+    if (activeToast && activeToast.parentElement) activeToast.remove();
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML =
+      '<svg class="toast-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+      '<span></span>' +
+      '<button class="toast-x" aria-label="Dismiss">×</button>';
+    t.querySelector('span').innerHTML = message;
+    document.body.appendChild(t);
+    activeToast = t;
+    const dismiss = () => {
+      if (!t.parentElement) return;
+      t.classList.add('hide');
+      setTimeout(() => { if (t.parentElement) t.remove(); }, 280);
+      if (activeToast === t) activeToast = null;
+    };
+    t.querySelector('.toast-x').addEventListener('click', dismiss);
+    setTimeout(dismiss, 3500);
+  }
+  function presetAppliedToast(name) {
+    showToast('Preset <strong>' + (name || '') + '</strong> applied');
+  }
+
+  // ── Reset button enable/disable logic ──
+  // Manage-tab Reset is disabled until either a preset is selected
+  // (Screen 2 dropdown or tray dropdown) or the tray has been
+  // touched. Screen 5's Reset is always enabled.
+  function updateResetState() {
+    const s2Btn = document.getElementById('s2-reset');
+    if (s2Btn) {
+      const tsel = traySel();
+      const ssel = s2Sel();
+      const tval = tsel ? tsel.value : '';
+      const sval = ssel ? ssel.value : '';
+      const enabled = !!tval || !!sval;
+      s2Btn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+    }
+    // s5-reset is always enabled — Screen 5 always has a preset applied
+    const s5Btn = document.getElementById('s5-reset');
+    if (s5Btn) s5Btn.removeAttribute('aria-disabled');
+  }
+
+  // Shared reset action used by both Manage-tab Reset links.
+  function performQuizReset() {
+    const tray = document.getElementById('tray-empty');
+    if (tray) {
+      trayApplying = true;
+      resetForm(tray);
+      const tsel = traySel();
+      if (tsel) { clearCustomOption(tsel); tsel.value = ''; }
+      setTimeout(() => { trayApplying = false; }, 50);
+    }
+    const ssel = s2Sel();
+    if (ssel) { clearCustomOption(ssel); ssel.value = ''; }
+    // If we're on Screen 5 (Midterm hardcoded), bounce back to Screen 2
+    if (typeof window.go === 'function') {
+      const s5 = document.getElementById('s5');
+      if (s5 && s5.classList.contains('active')) window.go(2);
+    }
+    updateResetState();
+    setStatus('Quiz settings cleared', '#0F7A2E');
+  }
+
+  // ── Screen 2 / Screen 5 wiring ──
+  function wireManageTab() {
+    const s2btn = document.getElementById('s2-reset');
+    if (s2btn) {
+      s2btn.addEventListener('click', () => {
+        if (s2btn.getAttribute('aria-disabled') === 'true') return;
+        performQuizReset();
+      });
+    }
+    const s5btn = document.getElementById('s5-reset');
+    if (s5btn) {
+      s5btn.addEventListener('click', () => {
+        if (s5btn.getAttribute('aria-disabled') === 'true') return;
+        performQuizReset();
+      });
+    }
+
+    // Hijack Screen 2's preset dropdown:
+    // - Don't navigate away to Screen 5 anymore
+    // - Apply the selected preset to the tray
+    // - Show toast
+    const ssel = s2Sel();
+    if (ssel) {
+      ssel.removeAttribute('onchange');
+      ssel.addEventListener('change', () => {
+        const v = ssel.value;
+        if (!v || v === CUSTOM_VALUE) { updateResetState(); return; }
+        const p = allPresets.find(x => slugify(x.name) === v);
+        if (!p) { updateResetState(); return; }
+        const tray = document.getElementById('tray-empty');
+        if (tray) {
+          trayApplying = true;
+          applyForm(tray, p.settings);
+          const tsel = traySel();
+          if (tsel) { clearCustomOption(tsel); tsel.value = slugify(p.name); }
+          setTimeout(() => { trayApplying = false; }, 50);
+        }
+        presetAppliedToast(p.name);
+        updateResetState();
+      });
+    }
   }
 
   // ── Init ──
@@ -1775,8 +1876,9 @@ const PROTOTYPE_ID      = 'ams-delivery';
     }));
     rebuildDropdowns();
     wireScreen3();
-    wireScreen2();
+    wireManageTab();
     wireTray();
+    updateResetState();
     presetCountStatus();
   }
 
@@ -1813,6 +1915,8 @@ const PROTOTYPE_ID      = 'ams-delivery';
         currentPresetIdx = allPresets.findIndex(p => p.name === name);
         setUpdateBtn(true);
       }
+      if (ok) presetAppliedToast(name);
+      updateResetState();
       setStatus(ok ? presetCountStatusText() : 'Save error', ok ? '#0F7A2E' : '#9A3B2E');
     };
   }, 0);
