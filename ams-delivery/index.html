@@ -1412,95 +1412,313 @@ const PROTOTYPE_ID      = 'ams-delivery';
   }
   const sessionId = PROTOTYPE_ID + ':' + rawId;
 
-  // Assign a stable ordinal key to every form element + toggle switch.
-  // Ordinal keys are fine for a prototype; if you change the DOM order later,
-  // previously saved values will simply not apply.
-  function keyElements() {
-    document.querySelectorAll('input, select, textarea').forEach((el, i) => {
-      if (!el.dataset.skey) el.dataset.skey = 'f' + i;
-    });
-    document.querySelectorAll('.tg-track').forEach((el, i) => {
-      if (!el.dataset.skey) el.dataset.skey = 't' + i;
-    });
+  // ─────────────────────────────────────────────────────────────
+  // Each preset is stored as { name, description, settings }.
+  // `settings` is a snapshot of Screen 3's form state at the
+  // moment the preset was created or updated. When the user
+  // selects a preset from a dropdown, we apply that snapshot
+  // back onto whichever screen they're on (Screen 3 or the tray).
+  // ─────────────────────────────────────────────────────────────
+
+  function slugify(s) {
+    return 'preset-' + String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
 
-  function serialize() {
-    const out = {};
-    document.querySelectorAll('input, select, textarea').forEach(el => {
-      const k = el.dataset.skey; if (!k) return;
-      if (el.type === 'checkbox' || el.type === 'radio') out[k] = !!el.checked;
-      else out[k] = el.value;
-    });
-    document.querySelectorAll('.tg-track').forEach(el => {
-      const k = el.dataset.skey; if (!k) return;
-      out[k] = el.classList.contains('on');
-    });
-    return out;
+  // Pull the human label out of a row that contains a .ti toggle.
+  // We use this so a toggle labelled "Shuffle questions" on Screen 3
+  // and one labelled the same in the tray share a logical key.
+  function rowLabel(row) {
+    if (!row) return null;
+    const clone = row.cloneNode(true);
+    clone.querySelectorAll('.ti, .ii, svg, .tg-track, .tg-thumb').forEach(n => n.remove());
+    return clone.textContent.trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+  function checkboxLabel(el) {
+    const lbl = el.closest('label');
+    if (!lbl) return null;
+    const clone = lbl.cloneNode(true);
+    clone.querySelectorAll('input, .ii, svg').forEach(n => n.remove());
+    return clone.textContent.trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+  // Strip the screen prefix (s3-, te-, tm-, s4-, s5-) so radio groups
+  // can map across screens by their suffix (q, sr, ci, ca, af, …).
+  function radioStem(name) {
+    return name.replace(/^(s\d+|te|tm)-?/, '');
   }
 
-  function apply(data) {
-    if (!data || typeof data !== 'object') return;
-    document.querySelectorAll('input, select, textarea').forEach(el => {
-      const k = el.dataset.skey; if (!k || !(k in data)) return;
-      if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!data[k];
-      else el.value = data[k];
+  // Snapshot a form root into a plain object.
+  function captureForm(root) {
+    const data = { booleans: {}, selects: [], radios: {}, numbers: [] };
+    root.querySelectorAll('.ti').forEach(el => {
+      const lbl = rowLabel(el.closest('.t-row, .tray-row'));
+      if (lbl) data.booleans[lbl] = el.classList.contains('on');
     });
-    document.querySelectorAll('.tg-track').forEach(el => {
-      const k = el.dataset.skey; if (!k || !(k in data)) return;
-      const on = !!data[k];
-      el.classList.toggle('on', on);
-      // Reveal/hide the linked sub-section the same way toggleSub() does
-      const sub = el.parentElement && el.parentElement.nextElementSibling;
-      if (sub && sub.classList && sub.classList.contains('tg-sub')) {
-        sub.style.display = on ? '' : 'none';
+    root.querySelectorAll('input[type="checkbox"]').forEach(el => {
+      const lbl = checkboxLabel(el);
+      if (lbl) data.booleans[lbl] = el.checked;
+    });
+    root.querySelectorAll('select').forEach(el => data.selects.push(el.selectedIndex));
+    const groups = {};
+    root.querySelectorAll('input[type="radio"]').forEach(el => {
+      if (!groups[el.name]) groups[el.name] = [];
+      groups[el.name].push(el);
+    });
+    Object.keys(groups).forEach(name => {
+      data.radios[radioStem(name)] = groups[name].findIndex(r => r.checked);
+    });
+    root.querySelectorAll('input[type="number"]').forEach(el => data.numbers.push(el.value));
+    return data;
+  }
+
+  // Apply a snapshot back to a form root. Toggles first so that
+  // visibility of nested sections (.tg-sub, [data-controls]) updates
+  // before we try to set radios inside them.
+  function applyForm(root, data) {
+    if (!data) return;
+    if (data.booleans) {
+      root.querySelectorAll('.ti').forEach(el => {
+        const lbl = rowLabel(el.closest('.t-row, .tray-row'));
+        if (lbl == null || !(lbl in data.booleans)) return;
+        const on = !!data.booleans[lbl];
+        el.classList.toggle('on', on);
+        const ctrl = el.dataset.controls;
+        if (ctrl) {
+          const sub = document.getElementById(ctrl);
+          if (sub) sub.style.display = on ? '' : 'none';
+        }
+      });
+      root.querySelectorAll('input[type="checkbox"]').forEach(el => {
+        const lbl = checkboxLabel(el);
+        if (lbl == null || !(lbl in data.booleans)) return;
+        el.checked = !!data.booleans[lbl];
+      });
+    }
+    if (Array.isArray(data.selects)) {
+      root.querySelectorAll('select').forEach((el, i) => {
+        const v = data.selects[i];
+        if (v != null && v < el.options.length) el.selectedIndex = v;
+      });
+    }
+    if (data.radios) {
+      const groups = {};
+      root.querySelectorAll('input[type="radio"]').forEach(el => {
+        const stem = radioStem(el.name);
+        if (!groups[stem]) groups[stem] = [];
+        groups[stem].push(el);
+      });
+      Object.keys(groups).forEach(stem => {
+        const idx = data.radios[stem];
+        if (idx == null) return;
+        groups[stem].forEach((r, i) => { r.checked = (i === idx); });
+      });
+    }
+    if (Array.isArray(data.numbers)) {
+      root.querySelectorAll('input[type="number"]').forEach((el, i) => {
+        if (data.numbers[i] != null) el.value = data.numbers[i];
+      });
+    }
+  }
+
+  // Wipe a form root back to defaults.
+  function resetForm(root) {
+    root.querySelectorAll('.ti').forEach(el => {
+      el.classList.remove('on');
+      const ctrl = el.dataset.controls;
+      if (ctrl) {
+        const sub = document.getElementById(ctrl);
+        if (sub) sub.style.display = 'none';
       }
     });
+    root.querySelectorAll('select').forEach(el => { el.selectedIndex = 0; });
+    const groups = {};
+    root.querySelectorAll('input[type="radio"]').forEach(el => {
+      if (!groups[el.name]) groups[el.name] = [];
+      groups[el.name].push(el);
+    });
+    Object.keys(groups).forEach(name => {
+      groups[name].forEach((r, i) => { r.checked = (i === 0); });
+    });
+    root.querySelectorAll('input[type="checkbox"]').forEach(el => { el.checked = false; });
+    root.querySelectorAll('input[type="number"]').forEach(el => {
+      el.value = el.defaultValue || el.getAttribute('value') || '';
+    });
   }
 
-  async function load() {
-    setStatus('Loading settings…');
+  // ── Supabase plumbing ──
+  let allPresets = [];
+
+  async function getRow() {
     const { data, error } = await client
-      .from('settings')
-      .select('data')
-      .eq('session_id', sessionId)
-      .maybeSingle();
-    if (error) { console.error('[AMS] load failed', error); setStatus('Load error', '#9A3B2E'); return; }
-    if (data && data.data) apply(data.data);
-    setStatus('Connected • saved', '#0F7A2E');
+      .from('settings').select('data').eq('session_id', sessionId).maybeSingle();
+    if (error) { console.error('[AMS] load failed', error); return null; }
+    return (data && data.data) ? data.data : { presets: [] };
+  }
+  async function setRow(d) {
+    const { error } = await client.from('settings').upsert(
+      { session_id: sessionId, data: d, updated_at: new Date().toISOString() },
+      { onConflict: 'session_id' }
+    );
+    if (error) console.error('[AMS] save failed', error);
+    return !error;
   }
 
-  let saveTimer = null;
-  function scheduleSave() {
-    clearTimeout(saveTimer);
-    setStatus('Saving…');
-    saveTimer = setTimeout(save, 400);
+  // ── Dropdowns ──
+  function s2Sel()   { return document.getElementById('s2-preset-sel'); }
+  function s3Sel()   { return document.querySelector('#s3 .p-sel'); }
+  function traySel() { return document.querySelector('#tray-empty > div:first-child select'); }
+
+  function rebuildDropdowns() {
+    [s2Sel(), s3Sel(), traySel()].filter(Boolean).forEach(sel => {
+      const prev = sel.value;
+      sel.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = ''; placeholder.textContent = 'Select preset';
+      sel.appendChild(placeholder);
+      allPresets.forEach(p => {
+        const o = document.createElement('option');
+        o.value = slugify(p.name);
+        o.textContent = p.name;
+        sel.appendChild(o);
+      });
+      if (prev && allPresets.some(p => slugify(p.name) === prev)) sel.value = prev;
+    });
   }
 
-  async function save() {
-    const payload = {
-      session_id: sessionId,
-      data: serialize(),
-      updated_at: new Date().toISOString()
-    };
-    const { error } = await client
-      .from('settings')
-      .upsert(payload, { onConflict: 'session_id' });
-    if (error) { console.error('[AMS] save failed', error); setStatus('Save error', '#9A3B2E'); return; }
-    setStatus('Connected • saved', '#0F7A2E');
+  function presetCountStatus() {
+    setStatus(allPresets.length + ' preset' + (allPresets.length === 1 ? '' : 's') + ' saved', '#0F7A2E');
   }
 
-  keyElements();
-  load();
+  // ── Screen 3 wiring ──
+  let currentPresetIdx = -1;
 
-  // Save on any form change
-  document.addEventListener('change', scheduleSave, true);
-  // Toggle switches don't fire 'change' — listen for clicks on .tg-track
-  document.addEventListener('click', (e) => {
-    if (e.target && e.target.closest && e.target.closest('.tg-track')) {
-      // toggleSub() flips the class synchronously, but click handler may run after
-      setTimeout(scheduleSave, 30);
+  function s3Button(text) {
+    const s3 = document.getElementById('s3'); if (!s3) return null;
+    return Array.from(s3.querySelectorAll('button')).find(b => b.textContent.trim() === text);
+  }
+  function setUpdateBtn(enabled) {
+    const btn = s3Button('Update preset'); if (!btn) return;
+    if (enabled) { btn.removeAttribute('disabled'); btn.className = 'btn btn-p'; }
+    else         { btn.setAttribute('disabled', ''); btn.className = 'btn btn-dis'; }
+  }
+
+  function wireScreen3() {
+    const s3 = document.getElementById('s3'); if (!s3) return;
+
+    const resetBtn = s3Button('Reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        resetForm(s3);
+        currentPresetIdx = -1;
+        const sel = s3Sel(); if (sel) sel.value = '';
+        setUpdateBtn(false);
+        setStatus('Settings cleared', '#0F7A2E');
+      });
     }
-  }, true);
+
+    const updBtn = s3Button('Update preset');
+    if (updBtn) {
+      updBtn.addEventListener('click', async () => {
+        if (currentPresetIdx < 0 || updBtn.hasAttribute('disabled')) return;
+        allPresets[currentPresetIdx].settings = captureForm(s3);
+        const ok = await setRow({ presets: allPresets });
+        setStatus(ok ? 'Preset updated' : 'Save error', ok ? '#0F7A2E' : '#9A3B2E');
+      });
+    }
+
+    const sel = s3Sel();
+    if (sel) {
+      sel.addEventListener('change', () => {
+        const v = sel.value;
+        if (!v) { currentPresetIdx = -1; setUpdateBtn(false); return; }
+        const idx = allPresets.findIndex(p => slugify(p.name) === v);
+        if (idx < 0) return;
+        currentPresetIdx = idx;
+        applyForm(s3, allPresets[idx].settings);
+        setUpdateBtn(true);
+      });
+    }
+  }
+
+  // ── Tray wiring ──
+  function wireTray() {
+    const tray = document.getElementById('tray-empty');
+    const sel = traySel();
+    if (!tray || !sel) return;
+    sel.addEventListener('change', () => {
+      const v = sel.value; if (!v) return;
+      const p = allPresets.find(x => slugify(x.name) === v);
+      if (p && p.settings) applyForm(tray, p.settings);
+    });
+  }
+
+  // ── Init ──
+  async function init() {
+    setStatus('Loading presets…');
+    const d = await getRow();
+    if (!d) { setStatus('Load error', '#9A3B2E'); return; }
+    allPresets = Array.isArray(d.presets) ? d.presets : [];
+    // Normalize: legacy rows might just have { name } without settings.
+    allPresets = allPresets.map(p => ({
+      name: p.name || '',
+      description: p.description || '',
+      settings: p.settings || {}
+    }));
+    rebuildDropdowns();
+    wireScreen3();
+    wireTray();
+    presetCountStatus();
+  }
+
+  // Hook the existing confirmCreate so a Save also captures Screen 3's
+  // form state and keeps the user on Screen 3.
+  setTimeout(() => {
+    if (typeof window.confirmCreate !== 'function') return;
+    const orig = window.confirmCreate;
+    window.confirmCreate = async function () {
+      const s3 = document.getElementById('s3');
+      const snapshot = s3 ? captureForm(s3) : {};
+      orig.apply(this, arguments);
+      // Original calls go(4). Override and stay on Screen 3.
+      if (typeof window.go === 'function') window.go(3);
+
+      const name = window.createdPresetName;
+      const descEl = document.getElementById('create-desc');
+      const desc = descEl ? descEl.value : '';
+      if (!name) return;
+
+      const existingIdx = allPresets.findIndex(p => p.name === name);
+      const record = { name: name, description: desc, settings: snapshot };
+      if (existingIdx >= 0) allPresets[existingIdx] = record;
+      else                  allPresets.push(record);
+
+      const ok = await setRow({ presets: allPresets });
+      rebuildDropdowns();
+
+      // Auto-select the newly created preset on Screen 3 so the
+      // Update button is wired and the dropdown reflects state.
+      const sel = s3Sel();
+      if (sel) {
+        sel.value = slugify(name);
+        currentPresetIdx = allPresets.findIndex(p => p.name === name);
+        setUpdateBtn(true);
+      }
+      setStatus(ok ? presetCountStatusText() : 'Save error', ok ? '#0F7A2E' : '#9A3B2E');
+    };
+  }, 0);
+
+  function presetCountStatusText() {
+    return allPresets.length + ' preset' + (allPresets.length === 1 ? '' : 's') + ' saved';
+  }
+
+  // For testing: wipe all presets via DevTools console.
+  window.amsClearPresets = async () => {
+    allPresets = [];
+    const ok = await setRow({ presets: [] });
+    rebuildDropdowns();
+    setStatus(ok ? 'Presets cleared' : 'Save error', ok ? '#0F7A2E' : '#9A3B2E');
+  };
+
+  init();
 })();
 </script>
 </body>
