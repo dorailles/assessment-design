@@ -1103,9 +1103,9 @@ body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--b
     <button class="modal-x" onclick="closeModal('update')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <h2 class="modal-t">Update Preset</h2>
     <p class="modal-body">Saving will override this template and update all linked quizzes. Save as New creates a separate template; existing quizzes won't change.</p>
-    <div class="f-field"><label class="f-label" for="update-name">Saved Settings Name<span class="req">*</span></label><input type="text" class="input" id="update-name" value="Midterm"/></div>
-    <div class="f-field"><label class="f-label" for="update-desc">Description<span class="req">*</span></label><textarea class="textarea" id="update-desc">Timed midterm exam, single attempt, results shown one week after close date.</textarea><p class="f-hint">0/75 character limit</p></div>
-    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal('update')">Cancel</button><button class="btn btn-s" onclick="closeModal('update')">Save as New</button><button class="btn btn-p" onclick="closeModal('update')">Confirm</button></div>
+    <div class="f-field"><label class="f-label" for="update-name">Saved Settings Name<span class="req">*</span></label><input type="text" class="input" id="update-name" oninput="checkUpdate()"/></div>
+    <div class="f-field"><label class="f-label" for="update-desc">Description<span class="req">*</span></label><textarea class="textarea" id="update-desc" oninput="checkUpdate()"></textarea><p class="f-hint" id="update-hint">0/75 character limit</p></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal('update')">Cancel</button><button class="btn btn-dis" id="update-confirm" onclick="confirmUpdate()">Confirm</button></div>
   </div>
 </div>
 
@@ -1666,11 +1666,9 @@ const PROTOTYPE_ID      = 'ams-delivery';
 
     const updBtn = s3Button('Update preset');
     if (updBtn) {
-      updBtn.addEventListener('click', async () => {
+      updBtn.addEventListener('click', () => {
         if (currentPresetIdx < 0 || updBtn.hasAttribute('disabled')) return;
-        allPresets[currentPresetIdx].settings = captureForm(s3);
-        const ok = await setRow({ presets: allPresets });
-        setStatus(ok ? 'Preset updated' : 'Save error', ok ? '#0F7A2E' : '#9A3B2E');
+        openUpdateModal();
       });
     }
 
@@ -1924,6 +1922,71 @@ const PROTOTYPE_ID      = 'ams-delivery';
   function presetCountStatusText() {
     return allPresets.length + ' preset' + (allPresets.length === 1 ? '' : 's') + ' saved';
   }
+
+  // ── Update Preset modal ──
+  function openUpdateModal() {
+    if (currentPresetIdx < 0) return;
+    const p = allPresets[currentPresetIdx];
+    const nameEl = document.getElementById('update-name');
+    const descEl = document.getElementById('update-desc');
+    if (nameEl) nameEl.value = p.name || '';
+    if (descEl) descEl.value = p.description || '';
+    if (typeof window.openModal === 'function') window.openModal('update');
+    else document.getElementById('modal-update').classList.add('open');
+    checkUpdate();
+  }
+
+  // Enable Confirm only when both fields are filled. Also keeps the
+  // character counter under the description in sync.
+  window.checkUpdate = function () {
+    const nameEl = document.getElementById('update-name');
+    const descEl = document.getElementById('update-desc');
+    const btn    = document.getElementById('update-confirm');
+    const hint   = document.getElementById('update-hint');
+    if (!nameEl || !descEl || !btn) return;
+    const n = nameEl.value.trim();
+    const d = descEl.value.trim();
+    btn.className = (n && d) ? 'btn btn-p' : 'btn btn-dis';
+    if (hint) hint.textContent = descEl.value.length + '/75 character limit';
+  };
+
+  // Confirm — save current Screen 3 form state with the (possibly
+  // edited) name and description, then close the modal.
+  window.confirmUpdate = async function () {
+    const btn = document.getElementById('update-confirm');
+    if (!btn || btn.classList.contains('btn-dis')) return;
+    if (currentPresetIdx < 0) return;
+    const s3 = document.getElementById('s3'); if (!s3) return;
+    const nameEl = document.getElementById('update-name');
+    const descEl = document.getElementById('update-desc');
+    const newName = (nameEl ? nameEl.value : '').trim();
+    const newDesc = (descEl ? descEl.value : '').trim();
+    if (!newName || !newDesc) return;
+
+    allPresets[currentPresetIdx] = {
+      name: newName,
+      description: newDesc,
+      settings: captureForm(s3)
+    };
+    const ok = await setRow({ presets: allPresets });
+    if (typeof window.closeModal === 'function') window.closeModal('update');
+    else document.getElementById('modal-update').classList.remove('open');
+
+    if (ok) {
+      rebuildDropdowns();
+      // Re-select the (possibly renamed) preset on Screen 3
+      const sel = s3Sel();
+      if (sel) {
+        sel.value = slugify(newName);
+        currentPresetIdx = allPresets.findIndex(p => p.name === newName);
+      }
+      presetAppliedToast(newName);
+      updateResetState();
+      setStatus(presetCountStatusText(), '#0F7A2E');
+    } else {
+      setStatus('Save error', '#9A3B2E');
+    }
+  };
 
   // For testing: wipe all presets via DevTools console.
   window.amsClearPresets = async () => {
